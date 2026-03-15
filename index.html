@@ -5,7 +5,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>QR Pro - Universal Dashboard</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <!-- ADD THESE LINES IN HEAD -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/fingerprintjs2@2.1.0/dist/fingerprint2.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap"
         rel="stylesheet">
     <style>
@@ -902,11 +905,161 @@
             }
         }
 
-        s
+        /* Real-time status indicator */
+        .rt-status {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            z-index: 9999;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .rt-status.online {
+            background: rgba(16, 185, 129, 0.2);
+            color: #10b981;
+        }
+
+        .rt-status.offline {
+            background: rgba(239, 68, 68, 0.2);
+            color: #ef4444;
+        }
+
+        .rt-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: currentColor;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+
+            0%,
+            100% {
+                opacity: 1;
+            }
+
+            50% {
+                opacity: 0.5;
+            }
+        }
+
+        /* Burger menu styles */
+        .burger-menu {
+            display: none;
+            flex-direction: column;
+            justify-content: space-around;
+            width: 30px;
+            height: 25px;
+            background: transparent;
+            border: none;
+            cursor: pointer;
+            padding: 0;
+            z-index: 1100;
+            position: relative;
+        }
+
+        .burger-menu span {
+            width: 30px;
+            height: 3px;
+            background: white;
+            border-radius: 10px;
+            transition: all 0.3s linear;
+            display: block;
+            margin: 3px 0;
+        }
+
+        .mobile-nav {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(15, 23, 42, 0.98);
+            backdrop-filter: blur(20px);
+            z-index: 1000;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            gap: 15px;
+            padding: 20px;
+        }
+
+        .mobile-nav.active {
+            display: flex;
+        }
+
+        .mobile-nav .nav-link {
+            font-size: 1.3rem;
+            padding: 15px 30px;
+            width: 80%;
+            max-width: 300px;
+            justify-content: center;
+        }
+
+        .mobile-nav .admin-secret-btn {
+            margin-top: 20px;
+            padding: 15px 30px;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            border: none;
+            border-radius: 12px;
+            color: white;
+            font-weight: 700;
+            font-size: 1rem;
+            cursor: pointer;
+            width: 80%;
+            max-width: 300px;
+        }
+
+        .close-mobile-nav {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            font-size: 2rem;
+            color: white;
+            background: none;
+            border: none;
+            cursor: pointer;
+        }
+
+        @media (max-width: 1024px) {
+            .burger-menu {
+                display: flex;
+            }
+
+            .sidebar {
+                display: none;
+            }
+
+            .main-content {
+                padding: 20px;
+                width: 100%;
+            }
+
+            .user-profile span {
+                display: none;
+            }
+        }
     </style>
 </head>
 
 <body>
+
+    <!-- Real-time Status -->
+    <div class="rt-status online" id="rtStatus">
+        <span class="rt-dot"></span>
+        <span id="rtText">Real-time Connected</span>
+    </div>
+
+    <!-- [Same HTML structure as before...] -->
+
     <div class="bg-blob blob-1"></div>
     <div class="bg-blob blob-2"></div>
 
@@ -951,7 +1104,6 @@
     <!-- Main Content Area -->
     <main class="main-content">
         <div class="top-bar">
-            <!-- Burger Menu Button -->
             <button class="burger-menu" onclick="toggleMobileNav()" aria-label="Menu">
                 <span></span>
                 <span></span>
@@ -972,7 +1124,6 @@
         <!-- Mobile Navigation Overlay -->
         <div class="mobile-nav" id="mobileNav">
             <button class="close-mobile-nav" onclick="toggleMobileNav()">✕</button>
-
             <a href="#" class="nav-link active" onclick="showViewMobile('generator')">
                 <span>⚡</span> Generator
             </a>
@@ -982,14 +1133,10 @@
             <a href="#" class="nav-link" onclick="showViewMobile('premium')">
                 <span>💎</span> Premium
             </a>
-
             <div style="border-top: 1px solid var(--glass-border); width: 80%; max-width: 300px; margin: 10px 0;"></div>
-
             <a href="#" class="nav-link" onclick="logout(); toggleMobileNav();">
                 <span>🚪</span> Logout
             </a>
-
-            <!-- Admin Access Button -->
             <button class="admin-secret-btn" onclick="showAdminPanel(); toggleMobileNav();">
                 🔐 Admin Panel
             </button>
@@ -1105,7 +1252,8 @@
                         <span class="panel-title">Live Preview</span>
                         <div id="usageBadge"
                             style="background: rgba(236, 72, 153, 0.2); color: var(--secondary); padding: 4px 12px; border-radius: 100px; font-size: 0.75rem; font-weight: 700;">
-                            FREE EDITION</div>
+                            FREE EDITION
+                        </div>
                     </div>
 
                     <div class="preview-area" id="resultSection">
@@ -1149,9 +1297,7 @@
                 </div>
                 <p style="color: var(--text-muted); margin-top: -15px;">Your locally saved QR codes are stored here for
                     30 days.</p>
-
                 <div class="history-grid" id="historyGrid">
-                    <!-- History items injected here -->
                     <div style="grid-column: 1/-1; text-align: center; padding: 60px; color: var(--text-muted);">
                         <span style="font-size: 3rem;">📂</span>
                         <p>No history yet. Start generating!</p>
@@ -1190,7 +1336,7 @@
         </div>
     </div>
 
-    <!-- Modals (Legacy support with new look) -->
+    <!-- Modals -->
     <div class="ad-overlay" id="adOverlay">
         <div class="ad-modal animate-fade">
             <div class="ad-header">
@@ -1250,137 +1396,516 @@
     </div>
 
     <script>
-        // State Management
+        // ================= FIREBASE CONFIGURATION =================
+        const firebaseConfig = {
+            apiKey: "AIzaSyCvqukdzG6IWGoaJNYO6uPXkF8XwgpxDgI",
+            authDomain: "generateqrcode-4fc3b.firebaseapp.com",
+            projectId: "generateqrcode-4fc3b",
+            storageBucket: "generateqrcode-4fc3b.firebasestorage.app",
+            messagingSenderId: "358008217328",
+            appId: "1:358008217328:web:df94e00125543dbd8a6c35",
+            measurementId: "G-JMK3YRG57Y"
+        };
+
+        // Initialize Firebase
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+
+        // ================= DEVICE & SESSION MANAGEMENT =================
+        let deviceId = null;
+        let sessionId = null;
+        let deviceListener = null;
+        let heartbeatInterval = null;
+
+        // Generate device fingerprint
+        async function generateDeviceId() {
+            return new Promise((resolve) => {
+                if (window.Fingerprint2) {
+                    Fingerprint2.get((components) => {
+                        const values = components.map(component => component.value);
+                        const murmur = Fingerprint2.x64hash128(values.join(''), 31);
+                        resolve(murmur);
+                    });
+                } else {
+                    // Fallback
+                    resolve('fb_' + Math.random().toString(36).substr(2, 9) + '_' + Date.now());
+                }
+            });
+        }
+
+        // Get device info
+        function getDeviceInfo() {
+            const ua = navigator.userAgent;
+            let deviceType = 'Desktop';
+            let browser = 'Unknown';
+            let os = 'Unknown';
+
+            if (/Mobile|Android|iPhone|iPad|iPod/.test(ua)) {
+                deviceType = /iPad|Tablet/.test(ua) ? 'Tablet' : 'Mobile';
+            }
+
+            if (/Chrome/.test(ua) && !/Edge/.test(ua)) browser = 'Chrome';
+            else if (/Firefox/.test(ua)) browser = 'Firefox';
+            else if (/Safari/.test(ua) && !/Chrome/.test(ua)) browser = 'Safari';
+            else if (/Edge/.test(ua)) browser = 'Edge';
+
+            if (/Windows/.test(ua)) os = 'Windows';
+            else if (/Mac/.test(ua)) os = 'macOS';
+            else if (/Linux/.test(ua)) os = 'Linux';
+            else if (/Android/.test(ua)) os = 'Android';
+            else if (/iOS|iPhone|iPad/.test(ua)) os = 'iOS';
+
+            return {
+                type: deviceType,
+                browser: browser,
+                os: os,
+                userAgent: ua.substring(0, 100), // Limit size
+                screen: `${window.screen.width}x${window.screen.height}`,
+                language: navigator.language,
+                timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+                platform: navigator.platform
+            };
+        }
+
+        // Initialize session
+        async function initializeSession(username) {
+            try {
+                deviceId = await generateDeviceId();
+                sessionId = 'sess_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+
+                const deviceInfo = getDeviceInfo();
+                const sessionData = {
+                    username: username,
+                    deviceId: deviceId,
+                    sessionId: sessionId,
+                    deviceInfo: deviceInfo,
+                    loginTime: firebase.firestore.FieldValue.serverTimestamp(),
+                    lastActive: firebase.firestore.FieldValue.serverTimestamp(),
+                    isActive: true,
+                    ip: 'client-side'
+                };
+
+                // Save session
+                await db.collection('sessions').doc(sessionId).set(sessionData);
+
+                // Update user
+                const userRef = db.collection('users').doc(username);
+                const userDoc = await userRef.get();
+
+                if (userDoc.exists) {
+                    await userRef.update({
+                        activeSessions: firebase.firestore.FieldValue.arrayUnion(sessionId),
+                        currentDeviceId: deviceId,
+                        lastLogin: firebase.firestore.FieldValue.serverTimestamp()
+                    });
+                } else {
+                    await userRef.set({
+                        username: username,
+                        activeSessions: [sessionId],
+                        currentDeviceId: deviceId,
+                        lastLogin: firebase.firestore.FieldValue.serverTimestamp(),
+                        role: 'user',
+                        isPremium: false
+                    });
+                }
+
+                // Start monitoring
+                startSessionMonitoring(username);
+
+                // Heartbeat every 30 seconds
+                heartbeatInterval = setInterval(() => {
+                    db.collection('sessions').doc(sessionId).update({
+                        lastActive: firebase.firestore.FieldValue.serverTimestamp()
+                    });
+                }, 30000);
+
+            } catch (error) {
+                console.error('Session init error:', error);
+            }
+        }
+
+        // Monitor other sessions
+        function startSessionMonitoring(username) {
+            if (deviceListener) deviceListener(); // Clean up old listener
+
+            deviceListener = db.collection('sessions')
+                .where('username', '==', username)
+                .where('isActive', '==', true)
+                .onSnapshot((snapshot) => {
+                    const otherSessions = [];
+                    snapshot.forEach((doc) => {
+                        const data = doc.data();
+                        if (data.sessionId !== sessionId) {
+                            otherSessions.push(data);
+                        }
+                    });
+
+                    if (otherSessions.length > 0) {
+                        showDeviceWarning(otherSessions);
+                    } else {
+                        hideDeviceWarning();
+                    }
+                }, (error) => {
+                    console.error('Session monitor error:', error);
+                });
+        }
+
+        // Show warning banner
+        function showDeviceWarning(otherSessions) {
+            const warning = document.getElementById('deviceWarning');
+            if (warning) {
+                warning.classList.add('active');
+                warning.style.display = 'flex';
+            }
+            window.otherActiveSessions = otherSessions;
+        }
+
+        function hideDeviceWarning() {
+            const warning = document.getElementById('deviceWarning');
+            if (warning) {
+                warning.classList.remove('active');
+                warning.style.display = 'none';
+            }
+        }
+
+        // Show session details
+        function showSessionDetails() {
+            const modal = document.getElementById('sessionConflictModal');
+            const list = document.getElementById('activeDevicesList');
+
+            if (!modal || !list) return;
+
+            list.innerHTML = '';
+
+            // Current device
+            const currentInfo = getDeviceInfo();
+            list.innerHTML += `
+        <div class="device-item current">
+            <span>✅</span>
+            <div>
+                <strong>This Device</strong> - ${currentInfo.type} (${currentInfo.browser} on ${currentInfo.os})
+                <br><small>${currentInfo.screen} • ${currentInfo.timezone}</small>
+            </div>
+        </div>
+    `;
+
+            // Other devices
+            if (window.otherActiveSessions) {
+                window.otherActiveSessions.forEach(session => {
+                    const info = session.deviceInfo || {};
+                    const loginTime = session.loginTime ?
+                        (session.loginTime.toDate ? new Date(session.loginTime.toDate()).toLocaleString() : 'Unknown') : 'Unknown';
+
+                    list.innerHTML += `
+                <div class="device-item other">
+                    <span>⚠️</span>
+                    <div>
+                        <strong>Other Device</strong> - ${info.type || 'Unknown'} (${info.browser || 'Unknown'} on ${info.os || 'Unknown'})
+                        <br><small>Logged in: ${loginTime}</small>
+                        ${info.screen ? `<br><small>${info.screen}</small>` : ''}
+                    </div>
+                </div>
+            `;
+                });
+            }
+
+            modal.classList.add('active');
+            modal.style.display = 'flex';
+        }
+
+        function closeConflictModal() {
+            const modal = document.getElementById('sessionConflictModal');
+            if (modal) {
+                modal.classList.remove('active');
+                modal.style.display = 'none';
+            }
+        }
+
+        // Logout other devices
+        async function logoutOtherDevices() {
+            if (!window.otherActiveSessions || window.otherActiveSessions.length === 0) return;
+
+            try {
+                const batch = db.batch();
+
+                window.otherActiveSessions.forEach(session => {
+                    const ref = db.collection('sessions').doc(session.sessionId);
+                    batch.update(ref, {
+                        isActive: false,
+                        loggedOutAt: firebase.firestore.FieldValue.serverTimestamp(),
+                        loggedOutBy: 'user'
+                    });
+                });
+
+                await batch.commit();
+                closeConflictModal();
+                hideDeviceWarning();
+                alert('✅ Other devices logged out successfully');
+            } catch (error) {
+                console.error('Logout others error:', error);
+                alert('❌ Error logging out other devices');
+            }
+        }
+
+        // End session cleanup
+        async function endSession() {
+            try {
+                if (heartbeatInterval) clearInterval(heartbeatInterval);
+                if (deviceListener) deviceListener();
+
+                if (sessionId) {
+                    await db.collection('sessions').doc(sessionId).update({
+                        isActive: false,
+                        logoutTime: firebase.firestore.FieldValue.serverTimestamp()
+                    });
+
+                    // Remove from user's active sessions
+                    const username = currentState.user;
+                    if (username) {
+                        const userDoc = await db.collection('users').doc(username).get();
+                        if (userDoc.exists) {
+                            const currentSessions = userDoc.data().activeSessions || [];
+                            const updated = currentSessions.filter(s => s !== sessionId);
+                            await db.collection('users').doc(username).update({
+                                activeSessions: updated
+                            });
+                        }
+                    }
+                }
+            } catch (error) {
+                console.error('End session error:', error);
+            }
+        }
+
+        // ================= STATE MANAGEMENT =================
         let currentState = {
             view: 'generator',
             tab: 'link',
             user: sessionStorage.getItem('qrUser') || null,
-            isPremium: localStorage.getItem('qrPremium') === 'true',
-            history: JSON.parse(localStorage.getItem('qr_history')) || [],
-            usage: JSON.parse(localStorage.getItem('qr_usage')) || { count: 0, lastReset: Date.now() }
+            isPremium: false,
+            history: JSON.parse(localStorage.getItem('qr_history') || '[]'),
+            usage: JSON.parse(localStorage.getItem('qr_usage') || '{"count":0,"lastReset":' + Date.now() + '}')
         };
 
-        // Initialization
+        // Sync user data
+        function syncUserData(username) {
+            if (!username) return;
+
+            db.collection('users').doc(username).onSnapshot((doc) => {
+                if (doc.exists) {
+                    const data = doc.data();
+                    currentState.isPremium = data.isPremium || false;
+                    currentState.usage = data.usage || { count: 0, lastReset: Date.now() };
+                    updateUIState();
+                }
+            }, (error) => {
+                console.error('User sync error:', error);
+            });
+        }
+
+        // Real-time status
+        function updateRTStatus(online) {
+            const status = document.getElementById('rtStatus');
+            const text = document.getElementById('rtText');
+            if (!status) return;
+
+            if (online) {
+                status.className = 'rt-status online';
+                if (text) text.textContent = 'Real-time Connected';
+            } else {
+                status.className = 'rt-status offline';
+                if (text) text.textContent = 'Offline Mode';
+            }
+        }
+
+        window.addEventListener('online', () => updateRTStatus(true));
+        window.addEventListener('offline', () => updateRTStatus(false));
+
+        // ================= PAYMENT HANDLING =================
+        async function submitGcashPayment(btn) {
+            const ref = document.getElementById('refNumber').value;
+            if (!ref || ref.length < 10) return alert("❌ Invalid reference number (min 10 digits)");
+
+            const username = currentState.user;
+            if (!username) return alert("❌ Please sign in first");
+
+            btn.disabled = true;
+            btn.textContent = "Submitting...";
+
+            try {
+                const existing = await db.collection('payments')
+                    .where('username', '==', username)
+                    .where('status', '==', 'pending')
+                    .get();
+
+                if (!existing.empty) {
+                    alert("⏳ You already have a pending request. Please wait for admin approval.");
+                    closeGcashModal();
+                    btn.disabled = false;
+                    btn.textContent = "Confirm Payment";
+                    return;
+                }
+
+                await db.collection('payments').add({
+                    username: username,
+                    ref: ref,
+                    date: new Date().toLocaleString(),
+                    status: 'pending',
+                    receipt: null,
+                    amount: 250,
+                    timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+                    deviceId: deviceId || 'unknown',
+                    sessionId: sessionId || 'unknown'
+                });
+
+                alert("✅ Payment Submitted!\n\nYour request is pending admin approval.\nCheck back later for premium access.");
+                closeGcashModal();
+
+            } catch (error) {
+                console.error('Payment error:', error);
+                alert("❌ Error submitting payment. Please try again.");
+            } finally {
+                btn.disabled = false;
+                btn.textContent = "Confirm Payment";
+            }
+        }
+
+        // ================= INITIALIZATION =================
         window.onload = () => {
             initAuth();
             renderHistory();
-            updateUIState();
+
+            if (currentState.user) {
+                syncUserData(currentState.user);
+                initializeSession(currentState.user);
+            }
         };
+
+        // Handle unload
+        window.addEventListener('beforeunload', () => {
+            endSession();
+        });
+
+        // Visibility change
+        document.addEventListener('visibilitychange', () => {
+            if (!sessionId) return;
+
+            if (document.hidden) {
+                db.collection('sessions').doc(sessionId).update({
+                    lastActive: firebase.firestore.FieldValue.serverTimestamp(),
+                    isVisible: false
+                });
+            } else {
+                db.collection('sessions').doc(sessionId).update({
+                    lastActive: firebase.firestore.FieldValue.serverTimestamp(),
+                    isVisible: true
+                });
+            }
+        });
 
         function initAuth() {
             if (!currentState.user) {
-                document.getElementById('authModal').style.display = 'flex';
+                const authModal = document.getElementById('authModal');
+                if (authModal) authModal.style.display = 'flex';
             } else {
-                const username = typeof currentState.user === 'string' ? currentState.user : currentState.user.username;
-                document.getElementById('userName').textContent = username;
-                document.getElementById('userAvatar').textContent = username[0].toUpperCase();
+                const userNameEl = document.getElementById('userName');
+                const userAvatarEl = document.getElementById('userAvatar');
+
+                if (userNameEl) userNameEl.textContent = currentState.user;
+                if (userAvatarEl) userAvatarEl.textContent = currentState.user[0].toUpperCase();
+
+                syncUserData(currentState.user);
             }
         }
 
         function updateUIState() {
-            const username = typeof currentState.user === 'string' ? currentState.user : (currentState.user ? currentState.user.username : null);
-
-            if (username) {
-                const requests = JSON.parse(localStorage.getItem('pendingUpgrades') || '[]');
-                const approvedRequest = requests.find(r => r.username === username && r.status === 'approved');
-
-                if (approvedRequest) {
-                    currentState.isPremium = true;
-                    localStorage.setItem('qrPremium', 'true');
-                } else {
-                    currentState.isPremium = false;
-                    localStorage.setItem('qrPremium', 'false');
-                }
-            }
+            const sidebarCard = document.getElementById('sidebarPremiumCard');
+            const usageBadge = document.getElementById('usageBadge');
+            const freeIndicator = document.getElementById('freeUsageIndicator');
+            const adBanner = document.getElementById('adBanner');
 
             if (currentState.isPremium) {
-                document.getElementById('sidebarPremiumCard').style.display = 'none';
-                document.getElementById('usageBadge').textContent = 'PREMIUM ACTIVE';
-                document.getElementById('usageBadge').style.background = 'rgba(16, 185, 129, 0.2)';
-                document.getElementById('usageBadge').style.color = '#10b981';
-                document.getElementById('freeUsageIndicator').style.display = 'none';
-                document.getElementById('adBanner').style.display = 'none';
+                if (sidebarCard) sidebarCard.style.display = 'none';
+                if (usageBadge) {
+                    usageBadge.textContent = 'PREMIUM ACTIVE';
+                    usageBadge.style.background = 'rgba(16, 185, 129, 0.2)';
+                    usageBadge.style.color = '#10b981';
+                }
+                if (freeIndicator) freeIndicator.style.display = 'none';
+                if (adBanner) adBanner.style.display = 'none';
+
                 document.querySelectorAll('.premium-lock').forEach(b => b.classList.remove('premium-lock'));
             } else {
-                document.getElementById('sidebarPremiumCard').style.display = 'block';
-                document.getElementById('usageBadge').textContent = 'FREE EDITION';
-                document.getElementById('usageBadge').style.background = 'rgba(236, 72, 153, 0.2)';
-                document.getElementById('usageBadge').style.color = 'var(--secondary)';
-                document.getElementById('freeUsageIndicator').style.display = 'block';
-                document.getElementById('adBanner').style.display = 'block';
+                if (sidebarCard) sidebarCard.style.display = 'block';
+                if (usageBadge) {
+                    usageBadge.textContent = 'FREE EDITION';
+                    usageBadge.style.background = 'rgba(236, 72, 153, 0.2)';
+                    usageBadge.style.color = 'var(--secondary)';
+                }
+                if (freeIndicator) freeIndicator.style.display = 'block';
+                if (adBanner) adBanner.style.display = 'block';
             }
             updateUsageDisplay();
         }
 
-        // View Switching
+        // ================= VIEW MANAGEMENT =================
         function showView(viewId) {
             currentState.view = viewId;
             document.querySelectorAll('.view-section').forEach(v => v.style.display = 'none');
-            document.getElementById('view-' + viewId).style.display = 'block';
+
+            const targetView = document.getElementById('view-' + viewId);
+            if (targetView) targetView.style.display = 'block';
 
             document.querySelectorAll('.sidebar .nav-link').forEach(l => l.classList.remove('active'));
-
-            // Find and activate the correct nav link
-            const navLinks = document.querySelectorAll('.sidebar .nav-link');
-            navLinks.forEach(link => {
+            document.querySelectorAll('.sidebar .nav-link').forEach(link => {
                 if (link.getAttribute('onclick') && link.getAttribute('onclick').includes("'" + viewId + "'")) {
                     link.classList.add('active');
                 }
             });
 
+            const pageTitle = document.getElementById('pageTitle');
+            const pageSubtitle = document.getElementById('pageSubtitle');
+
             if (viewId === 'generator') {
-                document.getElementById('pageTitle').textContent = 'Create QR Code';
-                document.getElementById('pageSubtitle').textContent = 'Select type and customize your code';
+                if (pageTitle) pageTitle.textContent = 'Create QR Code';
+                if (pageSubtitle) pageSubtitle.textContent = 'Select type and customize your code';
             } else {
-                document.getElementById('pageTitle').textContent = 'Library & History';
-                document.getElementById('pageSubtitle').textContent = 'Your previously generated QR codes';
+                if (pageTitle) pageTitle.textContent = 'Library & History';
+                if (pageSubtitle) pageSubtitle.textContent = 'Your previously generated QR codes';
                 renderHistory();
             }
         }
 
-        // Mobile Navigation Toggle
         function toggleMobileNav() {
             const nav = document.getElementById('mobileNav');
-            if (nav) {
-                nav.classList.toggle('active');
-            }
+            if (nav) nav.classList.toggle('active');
         }
 
-        // Mobile View Switching
         function showViewMobile(viewId) {
-            // Handle premium separately
             if (viewId === 'premium') {
                 showPremiumModal();
                 toggleMobileNav();
                 return;
             }
-
-            // Switch view
             showView(viewId);
             toggleMobileNav();
-
-            // Update active states in mobile nav
-            document.querySelectorAll('.mobile-nav .nav-link').forEach(link => {
-                link.classList.remove('active');
-            });
-
-            // Add active to clicked link
-            if (event && event.currentTarget) {
-                event.currentTarget.classList.add('active');
-            }
         }
 
         function switchTab(tabId) {
             if ((tabId === 'file' || tabId === 'wifi') && !currentState.isPremium) {
-                const username = typeof currentState.user === 'string' ? currentState.user : (currentState.user ? currentState.user.username : null);
-                const requests = JSON.parse(localStorage.getItem('pendingUpgrades') || '[]');
-                const pending = requests.find(r => r.username === username && r.status === 'pending');
+                if (!currentState.user) return initAuth();
 
-                if (pending) {
-                    alert("Your premium request is still pending admin approval. Please wait.");
-                } else {
-                    showPremiumModal();
-                }
+                db.collection('payments')
+                    .where('username', '==', currentState.user)
+                    .where('status', '==', 'pending')
+                    .get()
+                    .then(querySnapshot => {
+                        if (!querySnapshot.empty) {
+                            alert("⏳ Your premium request is still pending admin approval.");
+                        } else {
+                            showPremiumModal();
+                        }
+                    });
                 return;
             }
 
@@ -1393,31 +1918,30 @@
             if (btn) btn.classList.add('active');
 
             document.querySelectorAll('.input-group').forEach(g => g.style.display = 'none');
-            document.getElementById(tabId + '-input').style.display = 'block';
+            const targetInput = document.getElementById(tabId + '-input');
+            if (targetInput) targetInput.style.display = 'block';
         }
 
         function checkPremiumFeature(feature) {
             switchTab(feature);
         }
 
-        // QR Logic
+        // ================= QR GENERATION =================
         let currentQRCode = null;
 
         function initiateGeneration() {
             if (!currentState.user) return initAuth();
-
             if (currentState.isPremium) {
                 generateQR();
             } else {
-                if (getRemainingUsage() <= 0) {
-                    return showPremiumModal();
-                }
+                if (getRemainingUsage() <= 0) return showPremiumModal();
                 showAd();
             }
         }
 
         function generateQR() {
             const container = document.getElementById('qrcode');
+            if (!container) return;
             container.innerHTML = '';
 
             let data = "";
@@ -1425,16 +1949,20 @@
 
             switch (currentState.tab) {
                 case 'link':
-                    data = document.getElementById('linkUrl').value;
-                    label = "Link: " + data;
+                    const linkUrl = document.getElementById('linkUrl');
+                    data = linkUrl ? linkUrl.value : '';
+                    label = "Link: " + data.substring(0, 30);
                     break;
                 case 'text':
-                    data = document.getElementById('textContent').value;
+                    const textContent = document.getElementById('textContent');
+                    data = textContent ? textContent.value : '';
                     label = "Text: " + data.substring(0, 20);
                     break;
                 case 'wifi':
-                    const ssid = document.getElementById('wifiSsid').value;
-                    const pass = document.getElementById('wifiPassword').value;
+                    const wifiSsid = document.getElementById('wifiSsid');
+                    const wifiPassword = document.getElementById('wifiPassword');
+                    const ssid = wifiSsid ? wifiSsid.value : '';
+                    const pass = wifiPassword ? wifiPassword.value : '';
                     data = `WIFI:S:${ssid};T:WPA;P:${pass};;`;
                     label = "WiFi: " + ssid;
                     break;
@@ -1445,40 +1973,49 @@
             }
 
             if (!data || data === "https://") {
-                alert("Please provide valid input content");
+                alert("❌ Please provide valid input content");
                 return;
             }
 
-            const size = parseInt(document.getElementById('qrSize').value);
-            const color = document.getElementById('qrColor').value;
-            const bg = document.getElementById('qrBgColor').value;
+            const qrSize = document.getElementById('qrSize');
+            const qrColor = document.getElementById('qrColor');
+            const qrBgColor = document.getElementById('qrBgColor');
 
-            currentQRCode = new QRCode(container, {
-                text: data,
-                width: size,
-                height: size,
-                colorDark: color,
-                colorLight: bg,
-                correctLevel: QRCode.CorrectLevel.H
-            });
+            const size = qrSize ? parseInt(qrSize.value) : 256;
+            const color = qrColor ? qrColor.value : '#000000';
+            const bg = qrBgColor ? qrBgColor.value : '#ffffff';
 
-            document.getElementById('actionBtns').style.display = 'grid';
+            try {
+                currentQRCode = new QRCode(container, {
+                    text: data,
+                    width: size,
+                    height: size,
+                    colorDark: color,
+                    colorLight: bg,
+                    correctLevel: QRCode.CorrectLevel.H
+                });
 
-            setTimeout(() => {
-                const canvas = container.querySelector('canvas');
-                if (canvas) {
-                    addToHistory(canvas.toDataURL(), label);
-                }
-            }, 500);
+                const actionBtns = document.getElementById('actionBtns');
+                if (actionBtns) actionBtns.style.display = 'grid';
 
-            if (!currentState.isPremium) incrementUsage();
+                setTimeout(() => {
+                    const canvas = container.querySelector('canvas');
+                    if (canvas) addToHistory(canvas.toDataURL(), label);
+                }, 500);
+
+                if (!currentState.isPremium) incrementUsage();
+
+            } catch (error) {
+                console.error('QR generation error:', error);
+                alert('❌ Error generating QR code');
+            }
         }
 
         function downloadQR() {
             const canvas = document.querySelector('#qrcode canvas');
             if (canvas) {
                 const link = document.createElement('a');
-                link.download = 'QR-Pro-Code.png';
+                link.download = 'QR-Pro-' + Date.now() + '.png';
                 link.href = canvas.toDataURL();
                 link.click();
             }
@@ -1486,26 +2023,32 @@
 
         function copyToClipboard() {
             const canvas = document.querySelector('#qrcode canvas');
-            if (canvas) {
+            if (canvas && navigator.clipboard) {
                 canvas.toBlob(blob => {
                     const item = new ClipboardItem({ 'image/png': blob });
-                    navigator.clipboard.write([item]);
-                    alert('QR Code copied to clipboard!');
+                    navigator.clipboard.write([item]).then(() => {
+                        alert('✅ QR Code copied to clipboard!');
+                    }).catch(err => {
+                        console.error('Copy error:', err);
+                        alert('❌ Failed to copy to clipboard');
+                    });
                 });
             }
         }
 
-        // History Feature
+        // ================= HISTORY =================
         function addToHistory(dataUrl, label) {
             const item = {
                 id: Date.now(),
                 img: dataUrl,
                 label: label,
-                date: new Date().toLocaleDateString()
+                date: new Date().toLocaleDateString(),
+                deviceId: deviceId || 'unknown'
             };
             currentState.history.unshift(item);
             if (currentState.history.length > 20) currentState.history.pop();
             localStorage.setItem('qr_history', JSON.stringify(currentState.history));
+            renderHistory();
         }
 
         function renderHistory() {
@@ -1513,44 +2056,61 @@
             if (!grid) return;
 
             if (currentState.history.length === 0) {
-                grid.innerHTML = `<div style="grid-column: 1/-1; text-align: center; padding: 60px; color: var(--text-muted);"><span style="font-size: 3rem;">📂</span><p>No history yet.</p></div>`;
+                grid.innerHTML = `
+            <div style="grid-column: 1/-1; text-align: center; padding: 60px; color: var(--text-muted);">
+                <span style="font-size: 3rem;">📂</span>
+                <p>No history yet. Start generating!</p>
+            </div>
+        `;
                 return;
             }
 
             grid.innerHTML = currentState.history.map(item => `
-            <div class="history-item animate-fade" onclick="previewHistoryItem(${item.id})">
-                <div class="history-qr-thumb">
-                    <img src="${item.img}" alt="QR">
-                </div>
-                <div class="history-label">${item.label}</div>
-                <div style="font-size: 0.6rem; color: var(--text-muted); margin-top: 4px;">${item.date}</div>
+        <div class="history-item animate-fade" onclick="previewHistoryItem(${item.id})">
+            <div class="history-qr-thumb">
+                <img src="${item.img}" alt="QR">
             </div>
-        `).join('');
+            <div class="history-label">${item.label}</div>
+            <div style="font-size: 0.6rem; color: var(--text-muted); margin-top: 4px;">${item.date}</div>
+        </div>
+    `).join('');
         }
 
         function previewHistoryItem(id) {
             const item = currentState.history.find(h => h.id === id);
             if (item) {
                 const container = document.getElementById('qrcode');
-                container.innerHTML = `<img src="${item.img}" style="max-width: 100%; border-radius: 16px; padding: 15px; background: white;">`;
-                document.getElementById('actionBtns').style.display = 'grid';
+                if (container) {
+                    container.innerHTML = `<img src="${item.img}" style="max-width: 100%; border-radius: 16px; padding: 15px; background: white;">`;
+                }
+                const actionBtns = document.getElementById('actionBtns');
+                if (actionBtns) actionBtns.style.display = 'grid';
             }
         }
 
         function clearHistory() {
-            if (confirm("Clear all generation history?")) {
+            if (confirm("🗑️ Clear all generation history? This cannot be undone.")) {
                 currentState.history = [];
                 localStorage.setItem('qr_history', JSON.stringify([]));
                 renderHistory();
             }
         }
 
-        // Usage & Ads
+        // ================= USAGE & ADS =================
         function getRemainingUsage() {
             const now = Date.now();
-            if (now - currentState.usage.lastReset > 24 * 60 * 60 * 1000) {
+            const oneDay = 24 * 60 * 60 * 1000;
+
+            if (now - currentState.usage.lastReset > oneDay) {
                 currentState.usage = { count: 0, lastReset: now };
                 localStorage.setItem('qr_usage', JSON.stringify(currentState.usage));
+
+                if (currentState.user) {
+                    db.collection('users').doc(currentState.user).update({
+                        'usage.count': 0,
+                        'usage.lastReset': now
+                    }).catch(err => console.error('Usage update error:', err));
+                }
             }
             return Math.max(0, 3 - currentState.usage.count);
         }
@@ -1558,6 +2118,13 @@
         function incrementUsage() {
             currentState.usage.count++;
             localStorage.setItem('qr_usage', JSON.stringify(currentState.usage));
+
+            if (currentState.user) {
+                db.collection('users').doc(currentState.user).update({
+                    'usage.count': currentState.usage.count
+                }).catch(err => console.error('Usage increment error:', err));
+            }
+
             updateUsageDisplay();
         }
 
@@ -1567,8 +2134,14 @@
             if (freeCountEl) freeCountEl.textContent = count;
 
             const generateBtn = document.getElementById('generateBtn');
-            if (count <= 0 && generateBtn) {
-                generateBtn.textContent = 'LIMIT REACHED - UPGRADE';
+            if (generateBtn && !currentState.isPremium) {
+                if (count <= 0) {
+                    generateBtn.textContent = '⚠️ LIMIT REACHED - UPGRADE NOW';
+                    generateBtn.style.background = 'linear-gradient(135deg, #ef4444, #dc2626)';
+                } else {
+                    generateBtn.textContent = 'Generate QR Code';
+                    generateBtn.style.background = 'linear-gradient(135deg, var(--primary), var(--accent))';
+                }
             }
         }
 
@@ -1577,13 +2150,18 @@
             const overlay = document.getElementById('adOverlay');
             const skip = document.getElementById('skipBtn');
             const timer = document.getElementById('timer');
-            let left = 5;
 
+            if (!overlay || !skip || !timer) {
+                generateQR(); // Skip ad if elements missing
+                return;
+            }
+
+            let left = 5;
             overlay.classList.add('active');
+            overlay.style.display = 'flex';
             skip.disabled = true;
             skip.textContent = "Please wait...";
             skip.classList.remove('active');
-
             timer.textContent = left;
 
             adInterval = setInterval(() => {
@@ -1593,119 +2171,157 @@
                     clearInterval(adInterval);
                     skip.disabled = false;
                     skip.classList.add('active');
-                    skip.textContent = "Continue to QR Code";
+                    skip.textContent = "✅ Continue to QR Code";
                     skip.onclick = () => {
                         overlay.classList.remove('active');
+                        overlay.style.display = 'none';
                         generateQR();
                     };
                 }
             }, 1000);
         }
 
-        // Auth Operations
+        // ================= AUTH =================
         let isRegister = false;
+
         function toggleAuthMode() {
             isRegister = !isRegister;
-            document.getElementById('authTitle').textContent = isRegister ? 'Join QR Pro' : 'Welcome Back';
-            document.getElementById('authIcon').textContent = isRegister ? '✨' : '👤';
-            document.getElementById('authToggleAction').textContent = isRegister ? 'Sign In Instead' : 'Create Account';
-            document.getElementById('authToggleText').textContent = isRegister ? 'Already have an account?' : 'New to QR Pro?';
+            const authTitle = document.getElementById('authTitle');
+            const authIcon = document.getElementById('authIcon');
+            const authToggleAction = document.getElementById('authToggleAction');
+            const authToggleText = document.getElementById('authToggleText');
+
+            if (authTitle) authTitle.textContent = isRegister ? 'Join QR Pro' : 'Welcome Back';
+            if (authIcon) authIcon.textContent = isRegister ? '✨' : '👤';
+            if (authToggleAction) authToggleAction.textContent = isRegister ? 'Sign In Instead' : 'Create Account';
+            if (authToggleText) authToggleText.textContent = isRegister ? 'Already have an account?' : 'New to QR Pro?';
         }
 
-        function handleAuth() {
-            const u = document.getElementById('username').value.trim();
-            const p = document.getElementById('password').value;
+        async function handleAuth() {
+            const usernameInput = document.getElementById('username');
+            const passwordInput = document.getElementById('password');
 
-            if (u.length < 3) return alert("Username too short");
+            const u = usernameInput ? usernameInput.value.trim() : '';
+            const p = passwordInput ? passwordInput.value : '';
 
-            let users = JSON.parse(localStorage.getItem('qrAppUsers') || '[]');
+            if (u.length < 3) return alert("❌ Username too short (min 3 characters)");
+            if (p.length < 4) return alert("❌ Password too short (min 4 characters)");
 
-            if (isRegister) {
-                if (users.some(x => x.username === u)) return alert("Username exists");
-                users.push({ username: u, password: p, role: 'user', created: new Date().toLocaleString() });
-                localStorage.setItem('qrAppUsers', JSON.stringify(users));
-                alert("Account created! Please sign in.");
-                toggleAuthMode();
-            } else {
-                const user = users.find(x => x.username === u && x.password === p);
-                if (user || (u === 'admin' && p === 'admin')) {
-                    currentState.user = u;
-                    sessionStorage.setItem('qrUser', u);
-                    document.getElementById('authModal').style.display = 'none';
-                    initAuth();
+            try {
+                if (isRegister) {
+                    const userDoc = await db.collection('users').doc(u).get();
+                    if (userDoc.exists) return alert("❌ Username already exists");
+
+                    await db.collection('users').doc(u).set({
+                        username: u,
+                        password: p,
+                        role: 'user',
+                        created: new Date().toLocaleString(),
+                        isPremium: false,
+                        usage: { count: 0, lastReset: Date.now() },
+                        activeSessions: [],
+                        currentDeviceId: null,
+                        totalGenerations: 0
+                    });
+
+                    let users = JSON.parse(localStorage.getItem('qrAppUsers') || '[]');
+                    users.push({ username: u, password: p, role: 'user', created: new Date().toLocaleString() });
+                    localStorage.setItem('qrAppUsers', JSON.stringify(users));
+
+                    alert("✅ Account created! Please sign in.");
+                    toggleAuthMode();
+
                 } else {
-                    alert("Invalid credentials");
+                    const userDoc = await db.collection('users').doc(u).get();
+
+                    if (userDoc.exists) {
+                        const userData = userDoc.data();
+                        if (userData.password === p) {
+                            currentState.user = u;
+                            sessionStorage.setItem('qrUser', u);
+
+                            const authModal = document.getElementById('authModal');
+                            if (authModal) authModal.style.display = 'none';
+
+                            await initializeSession(u);
+                            syncUserData(u);
+                            initAuth();
+                        } else {
+                            alert("❌ Invalid password");
+                        }
+                    } else if (u === 'admin' && p === 'admin123') {
+                        currentState.user = u;
+                        sessionStorage.setItem('qrUser', u);
+
+                        const authModal = document.getElementById('authModal');
+                        if (authModal) authModal.style.display = 'none';
+
+                        await initializeSession(u);
+                        syncUserData(u);
+                        initAuth();
+                    } else {
+                        alert("❌ User not found");
+                    }
                 }
+            } catch (error) {
+                console.error('Auth error:', error);
+                alert("❌ Authentication error. Please try again.");
             }
         }
 
-        function logout() {
+        // Logout
+        async function logout() {
+            await endSession();
             sessionStorage.removeItem('qrUser');
+            sessionStorage.removeItem('adminAuth');
             location.reload();
         }
 
-        // Premium Logic
+        // ================= PREMIUM & ADMIN =================
         function showPremiumModal() {
             const modal = document.getElementById('gcashModal');
-            if (modal) modal.classList.add('active');
+            if (modal) {
+                modal.classList.add('active');
+                modal.style.display = 'flex';
+            }
         }
 
         function closeGcashModal() {
             const modal = document.getElementById('gcashModal');
-            if (modal) modal.classList.remove('active');
-        }
-
-        function submitGcashPayment(btn) {
-            const ref = document.getElementById('refNumber').value;
-            if (ref.length < 10) return alert("Invalid reference number");
-
-            const username = typeof currentState.user === 'string' ? currentState.user : (currentState.user ? currentState.user.username : null);
-            if (!username) return alert("Please sign in first");
-
-            btn.disabled = true;
-            btn.textContent = "Submitting...";
-
-            let requests = JSON.parse(localStorage.getItem('pendingUpgrades') || '[]');
-
-            if (requests.some(r => r.username === username && r.status === 'pending')) {
-                alert("You already have a pending request. Please wait for the admin to approve it.");
-                closeGcashModal();
-                return;
+            if (modal) {
+                modal.classList.remove('active');
+                modal.style.display = 'none';
             }
-
-            requests.push({
-                username: username,
-                ref: ref,
-                date: new Date().toLocaleString(),
-                status: 'pending',
-                receipt: null
-            });
-            localStorage.setItem('pendingUpgrades', JSON.stringify(requests));
-
-            setTimeout(() => {
-                alert("🚀 Payment Submitted! \nYour request is now pending admin approval. \nPlease check back later for full access.");
-                closeGcashModal();
-                btn.disabled = false;
-                btn.textContent = "Confirm Payment";
-                updateUIState();
-            }, 1500);
         }
 
-        // Admin Panel Access - SINGLE FUNCTION
         function showAdminPanel() {
-            const pass = prompt("🔐 Admin Access Required\n\nEnter password:");
+            const pass = prompt("🔐 Admin Access Required\n\nEnter admin password:");
             if (pass === "admin123") {
+                sessionStorage.setItem('adminAuth', 'true');
                 window.location.href = "admin_dashboard.html";
             } else if (pass !== null && pass !== "") {
                 alert("❌ Incorrect password!");
             }
         }
 
-        // Close mobile nav when clicking outside
+        // ================= FILE HANDLING =================
+        function handleFiles(files) {
+            const fileList = document.getElementById('fileList');
+            if (!fileList) return;
+
+            fileList.innerHTML = '';
+            Array.from(files).forEach(file => {
+                const tag = document.createElement('div');
+                tag.style.cssText = 'background: var(--primary); color: white; padding: 5px 10px; border-radius: 20px; font-size: 0.8rem; display: flex; align-items: center; gap: 5px;';
+                tag.innerHTML = `<span>📄</span> ${file.name.substring(0, 20)}${file.name.length > 20 ? '...' : ''}`;
+                fileList.appendChild(tag);
+            });
+        }
+
+        // Close mobile nav on outside click
         document.addEventListener('click', function (e) {
             const mobileNav = document.getElementById('mobileNav');
             const burger = document.querySelector('.burger-menu');
-
             if (!mobileNav || !burger) return;
 
             if (mobileNav.classList.contains('active') &&
@@ -1714,18 +2330,6 @@
                 mobileNav.classList.remove('active');
             }
         });
-
-        // File handling
-        function handleFiles(files) {
-            const fileList = document.getElementById('fileList');
-            fileList.innerHTML = '';
-            Array.from(files).forEach(file => {
-                const tag = document.createElement('div');
-                tag.style.cssText = 'background: var(--primary); color: white; padding: 5px 10px; border-radius: 20px; font-size: 0.8rem;';
-                tag.textContent = file.name;
-                fileList.appendChild(tag);
-            });
-        }
     </script>
 </body>
 
