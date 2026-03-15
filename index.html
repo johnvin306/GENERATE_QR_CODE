@@ -1318,8 +1318,15 @@
             document.querySelectorAll('.view-section').forEach(v => v.style.display = 'none');
             document.getElementById('view-' + viewId).style.display = 'block';
 
-            document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
-            event.currentTarget.classList.add('active');
+            document.querySelectorAll('.sidebar .nav-link').forEach(l => l.classList.remove('active'));
+
+            // Find and activate the correct nav link
+            const navLinks = document.querySelectorAll('.sidebar .nav-link');
+            navLinks.forEach(link => {
+                if (link.getAttribute('onclick') && link.getAttribute('onclick').includes("'" + viewId + "'")) {
+                    link.classList.add('active');
+                }
+            });
 
             if (viewId === 'generator') {
                 document.getElementById('pageTitle').textContent = 'Create QR Code';
@@ -1328,6 +1335,38 @@
                 document.getElementById('pageTitle').textContent = 'Library & History';
                 document.getElementById('pageSubtitle').textContent = 'Your previously generated QR codes';
                 renderHistory();
+            }
+        }
+
+        // Mobile Navigation Toggle
+        function toggleMobileNav() {
+            const nav = document.getElementById('mobileNav');
+            if (nav) {
+                nav.classList.toggle('active');
+            }
+        }
+
+        // Mobile View Switching
+        function showViewMobile(viewId) {
+            // Handle premium separately
+            if (viewId === 'premium') {
+                showPremiumModal();
+                toggleMobileNav();
+                return;
+            }
+
+            // Switch view
+            showView(viewId);
+            toggleMobileNav();
+
+            // Update active states in mobile nav
+            document.querySelectorAll('.mobile-nav .nav-link').forEach(link => {
+                link.classList.remove('active');
+            });
+
+            // Add active to clicked link
+            if (event && event.currentTarget) {
+                event.currentTarget.classList.add('active');
             }
         }
 
@@ -1347,9 +1386,9 @@
 
             currentState.tab = tabId;
             document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-            // Support both direct ID match and text content search for button selection
+
             const btn = Array.from(document.querySelectorAll('.tab-btn')).find(b =>
-                b.getAttribute('onclick').includes(`'${tabId}'`)
+                b.getAttribute('onclick') && b.getAttribute('onclick').includes("'" + tabId + "'")
             );
             if (btn) btn.classList.add('active');
 
@@ -1357,7 +1396,6 @@
             document.getElementById(tabId + '-input').style.display = 'block';
         }
 
-        // Feature lock function for WiFi/Batch
         function checkPremiumFeature(feature) {
             switchTab(feature);
         }
@@ -1426,8 +1464,6 @@
 
             document.getElementById('actionBtns').style.display = 'grid';
 
-            // Save to history
-            // Wait for canvas to render
             setTimeout(() => {
                 const canvas = container.querySelector('canvas');
                 if (canvas) {
@@ -1445,6 +1481,17 @@
                 link.download = 'QR-Pro-Code.png';
                 link.href = canvas.toDataURL();
                 link.click();
+            }
+        }
+
+        function copyToClipboard() {
+            const canvas = document.querySelector('#qrcode canvas');
+            if (canvas) {
+                canvas.toBlob(blob => {
+                    const item = new ClipboardItem({ 'image/png': blob });
+                    navigator.clipboard.write([item]);
+                    alert('QR Code copied to clipboard!');
+                });
             }
         }
 
@@ -1471,14 +1518,23 @@
             }
 
             grid.innerHTML = currentState.history.map(item => `
-                <div class="history-item animate-fade" onclick="previewHistoryItem(${item.id})">
-                    <div class="history-qr-thumb">
-                        <img src="${item.img}" alt="QR">
-                    </div>
-                    <div class="history-label">${item.label}</div>
-                    <div style="font-size: 0.6rem; color: var(--text-muted); margin-top: 4px;">${item.date}</div>
+            <div class="history-item animate-fade" onclick="previewHistoryItem(${item.id})">
+                <div class="history-qr-thumb">
+                    <img src="${item.img}" alt="QR">
                 </div>
-            `).join('');
+                <div class="history-label">${item.label}</div>
+                <div style="font-size: 0.6rem; color: var(--text-muted); margin-top: 4px;">${item.date}</div>
+            </div>
+        `).join('');
+        }
+
+        function previewHistoryItem(id) {
+            const item = currentState.history.find(h => h.id === id);
+            if (item) {
+                const container = document.getElementById('qrcode');
+                container.innerHTML = `<img src="${item.img}" style="max-width: 100%; border-radius: 16px; padding: 15px; background: white;">`;
+                document.getElementById('actionBtns').style.display = 'grid';
+            }
         }
 
         function clearHistory() {
@@ -1507,9 +1563,12 @@
 
         function updateUsageDisplay() {
             const count = getRemainingUsage();
-            document.getElementById('freeCount').textContent = count;
-            if (count <= 0) {
-                document.getElementById('generateBtn').textContent = 'LIMIT REACHED - UPGRADE';
+            const freeCountEl = document.getElementById('freeCount');
+            if (freeCountEl) freeCountEl.textContent = count;
+
+            const generateBtn = document.getElementById('generateBtn');
+            if (count <= 0 && generateBtn) {
+                generateBtn.textContent = 'LIMIT REACHED - UPGRADE';
             }
         }
 
@@ -1587,11 +1646,13 @@
 
         // Premium Logic
         function showPremiumModal() {
-            document.getElementById('gcashModal').classList.add('active');
+            const modal = document.getElementById('gcashModal');
+            if (modal) modal.classList.add('active');
         }
 
         function closeGcashModal() {
-            document.getElementById('gcashModal').classList.remove('active');
+            const modal = document.getElementById('gcashModal');
+            if (modal) modal.classList.remove('active');
         }
 
         function submitGcashPayment(btn) {
@@ -1604,10 +1665,8 @@
             btn.disabled = true;
             btn.textContent = "Submitting...";
 
-            // Store payment request for admin to see
             let requests = JSON.parse(localStorage.getItem('pendingUpgrades') || '[]');
 
-            // Avoid duplicate active requests for the same user
             if (requests.some(r => r.username === username && r.status === 'pending')) {
                 alert("You already have a pending request. Please wait for the admin to approve it.");
                 closeGcashModal();
@@ -1632,11 +1691,7 @@
             }, 1500);
         }
 
-        function showAdminPanel() {
-            const pass = prompt("Admin Access Required:");
-            if (pass === "admin123") window.location.href = "admin_dashboard.html";
-        }
-
+        // Admin Panel Access - SINGLE FUNCTION
         function showAdminPanel() {
             const pass = prompt("🔐 Admin Access Required\n\nEnter password:");
             if (pass === "admin123") {
@@ -1646,92 +1701,7 @@
             }
         }
 
-        // Mobile admin access - triple tap bottom-right corner
-        let adminTapCount = 0;
-        let adminTapTimer = null;
-
-        function initMobileAdminAccess() {
-            // Create invisible trigger area
-            const trigger = document.createElement('div');
-            trigger.className = 'admin-secret-trigger';
-            document.body.appendChild(trigger);
-
-            trigger.addEventListener('click', function () {
-                adminTapCount++;
-                if (adminTapCount === 1) {
-                    adminTapTimer = setTimeout(() => { adminTapCount = 0; }, 2000);
-                }
-                if (adminTapCount >= 3) {
-                    clearTimeout(adminTapTimer);
-                    adminTapCount = 0;
-                    showAdminPanel();
-                }
-            });
-
-            // Long press on logo (2 seconds) for mobile
-            const logo = document.querySelector('.logo-container');
-            if (logo) {
-                let pressTimer;
-                logo.addEventListener('touchstart', function (e) {
-                    pressTimer = setTimeout(() => {
-                        showAdminPanel();
-                    }, 2000);
-                });
-                logo.addEventListener('touchend', function () {
-                    clearTimeout(pressTimer);
-                });
-                logo.addEventListener('touchmove', function () {
-                    clearTimeout(pressTimer);
-                });
-            }
-        }
-
-        // Initialize
-        window.addEventListener('load', initMobileAdminAccess);
-
-        // Mobile Navigation Toggle
-        function toggleMobileNav() {
-            const nav = document.getElementById('mobileNav');
-            if (nav) {
-                nav.classList.toggle('active');
-            }
-        }
-
-        // Mobile View Switching
-        function showViewMobile(viewId) {
-            // Handle premium separately
-            if (viewId === 'premium') {
-                showPremiumModal();
-                toggleMobileNav();
-                return;
-            }
-
-            // Switch view
-            showView(viewId);
-            toggleMobileNav();
-
-            // Update active states in mobile nav
-            document.querySelectorAll('.mobile-nav .nav-link').forEach(link => {
-                link.classList.remove('active');
-            });
-
-            // Add active to clicked link
-            if (event && event.currentTarget) {
-                event.currentTarget.classList.add('active');
-            }
-        }
-
-        // Updated showAdminPanel function
-        function showAdminPanel() {
-            const pass = prompt("🔐 Admin Access Required\n\nEnter password:");
-            if (pass === "admin123") {
-                window.location.href = "admin_dashboard.html";
-            } else if (pass !== null && pass !== "") {
-                alert("❌ Incorrect password!");
-            }
-        }
-
-        // Close mobile nav when clicking outside (improved)
+        // Close mobile nav when clicking outside
         document.addEventListener('click', function (e) {
             const mobileNav = document.getElementById('mobileNav');
             const burger = document.querySelector('.burger-menu');
@@ -1745,29 +1715,16 @@
             }
         });
 
-        // Ensure showView exists (if not already defined)
-        function showView(viewId) {
-            currentState.view = viewId;
-            document.querySelectorAll('.view-section').forEach(v => v.style.display = 'none');
-            const viewElement = document.getElementById('view-' + viewId);
-            if (viewElement) {
-                viewElement.style.display = 'block';
-            }
-
-            // Update page titles
-            if (viewId === 'generator') {
-                document.getElementById('pageTitle').textContent = 'Create QR Code';
-                document.getElementById('pageSubtitle').textContent = 'Select type and customize your code';
-            } else if (viewId === 'history') {
-                document.getElementById('pageTitle').textContent = 'Library & History';
-                document.getElementById('pageSubtitle').textContent = 'Your previously generated QR codes';
-                renderHistory();
-            }
-
-            // Update desktop nav active states
-            document.querySelectorAll('.sidebar .nav-link').forEach(l => l.classList.remove('active'));
-            const activeLink = document.querySelector(`.sidebar .nav-link[onclick*="'${viewId}'"]`);
-            if (activeLink) activeLink.classList.add('active');
+        // File handling
+        function handleFiles(files) {
+            const fileList = document.getElementById('fileList');
+            fileList.innerHTML = '';
+            Array.from(files).forEach(file => {
+                const tag = document.createElement('div');
+                tag.style.cssText = 'background: var(--primary); color: white; padding: 5px 10px; border-radius: 20px; font-size: 0.8rem;';
+                tag.textContent = file.name;
+                fileList.appendChild(tag);
+            });
         }
     </script>
 </body>
