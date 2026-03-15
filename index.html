@@ -1,39 +1,1775 @@
-// Mobile Navigation Toggle
-function toggleMobileNav() {
-    const nav = document.getElementById('mobileNav');
-    nav.classList.toggle('active');
-}
+<!DOCTYPE html>
+<html lang="en">
 
-// Mobile View Switching
-function showViewMobile(viewId) {
-    showView(viewId);
-    toggleMobileNav();
-    
-    // Update active states in mobile nav
-    document.querySelectorAll('.mobile-nav .nav-link').forEach(link => {
-        link.classList.remove('active');
-    });
-    event.currentTarget.classList.add('active');
-}
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QR Pro - Universal Dashboard</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap"
+        rel="stylesheet">
+    <style>
+        :root {
+            --primary: #6366f1;
+            --primary-hover: #4f46e5;
+            --secondary: #ec4899;
+            --accent: #8b5cf6;
+            --bg-gradient: linear-gradient(135deg, #0f172a 0%, #1e1b4b 100%);
+            --glass-bg: rgba(255, 255, 255, 0.05);
+            --glass-border: rgba(255, 255, 255, 0.1);
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --sidebar-width: 280px;
+            --card-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+        }
 
-// Updated showAdminPanel function
-function showAdminPanel() {
-    const pass = prompt("🔐 Admin Access Required\n\nEnter password:");
-    if (pass === "admin123") {
-        window.location.href = "admin_dashboard.html";
-    } else if (pass !== null && pass !== "") {
-        alert("❌ Incorrect password!");
-    }
-}
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Plus Jakarta Sans', sans-serif;
+        }
 
-// Close mobile nav when clicking outside
-document.addEventListener('click', function(e) {
-    const mobileNav = document.getElementById('mobileNav');
-    const burger = document.querySelector('.burger-menu');
-    
-    if (mobileNav.classList.contains('active') && 
-        !mobileNav.contains(e.target) && 
-        !burger.contains(e.target)) {
-        mobileNav.classList.remove('active');
-    }
-});
+        body {
+            background: var(--bg-gradient);
+            color: var(--text-main);
+            min-height: 100vh;
+            overflow: hidden;
+            display: flex;
+        }
+
+        /* Glassmorphism Background Elements */
+        .bg-blob {
+            position: absolute;
+            width: 500px;
+            height: 500px;
+            background: radial-gradient(circle, rgba(99, 102, 241, 0.15) 0%, transparent 70%);
+            filter: blur(80px);
+            z-index: -1;
+            animation: move 20s infinite alternate;
+        }
+
+        .blob-1 {
+            top: -100px;
+            left: -100px;
+        }
+
+        .blob-2 {
+            bottom: -100px;
+            right: -100px;
+            background: radial-gradient(circle, rgba(236, 72, 153, 0.1) 0%, transparent 70%);
+        }
+
+        @keyframes move {
+            from {
+                transform: translate(0, 0);
+            }
+
+            to {
+                transform: translate(100px, 100px);
+            }
+        }
+
+        /* Sidebar Styling */
+        .sidebar {
+            width: var(--sidebar-width);
+            height: 100vh;
+            background: rgba(15, 23, 42, 0.6);
+            backdrop-filter: blur(20px);
+            border-right: 1px solid var(--glass-border);
+            padding: 40px 20px;
+            display: flex;
+            flex-direction: column;
+            z-index: 100;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .logo-container {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 50px;
+            padding: 0 10px;
+            cursor: pointer;
+        }
+
+        .logo-icon {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            box-shadow: 0 0 20px rgba(99, 102, 241, 0.5);
+        }
+
+        .logo-text {
+            font-size: 1.5rem;
+            font-weight: 800;
+            letter-spacing: -0.5px;
+            background: linear-gradient(to right, #fff, #94a3b8);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .nav-links {
+            list-style: none;
+            flex: 1;
+        }
+
+        .nav-item {
+            margin-bottom: 8px;
+        }
+
+        .nav-link {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 14px 18px;
+            color: var(--text-muted);
+            text-decoration: none;
+            border-radius: 12px;
+            transition: all 0.2s;
+            font-weight: 500;
+            position: relative;
+        }
+
+        .nav-link:hover {
+            color: #fff;
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .nav-link.active {
+            color: #fff;
+            background: rgba(99, 102, 241, 0.15);
+            border: 1px solid rgba(99, 102, 241, 0.3);
+        }
+
+        .nav-link.active::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            width: 4px;
+            height: 20px;
+            background: var(--primary);
+            border-radius: 0 4px 4px 0;
+        }
+
+        .premium-card-sidebar {
+            background: linear-gradient(135deg, rgba(99, 102, 241, 0.2) 0%, rgba(236, 72, 153, 0.2) 100%);
+            border: 1px solid var(--glass-border);
+            border-radius: 20px;
+            padding: 20px;
+            margin-top: auto;
+            text-align: center;
+        }
+
+        .premium-card-sidebar h4 {
+            font-size: 1rem;
+            margin-bottom: 10px;
+        }
+
+        .premium-card-sidebar p {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            margin-bottom: 15px;
+        }
+
+        .btn-upgrade-sidebar {
+            width: 100%;
+            padding: 10px;
+            background: #fff;
+            color: #0f172a;
+            border: none;
+            border-radius: 8px;
+            font-weight: 700;
+            font-size: 0.85rem;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+
+        .btn-upgrade-sidebar:hover {
+            transform: scale(1.05);
+        }
+
+        /* Main Content Styling */
+        .main-content {
+            flex: 1;
+            height: 100vh;
+            overflow-y: auto;
+            padding: 40px;
+            position: relative;
+        }
+
+        .top-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 40px;
+        }
+
+        .user-profile {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            background: var(--glass-bg);
+            padding: 8px 16px;
+            border-radius: 100px;
+            border: 1px solid var(--glass-border);
+        }
+
+        .avatar {
+            width: 35px;
+            height: 35px;
+            background: linear-gradient(45deg, var(--primary), var(--accent));
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+        }
+
+        /* Dashboard Grid */
+        .grid-layout {
+            display: grid;
+            grid-template-columns: 1.2fr 0.8fr;
+            gap: 30px;
+        }
+
+        .panel {
+            background: rgba(255, 255, 255, 0.03);
+            backdrop-filter: blur(20px);
+            border-radius: 24px;
+            border: 1px solid var(--glass-border);
+            padding: 30px;
+            box-shadow: var(--card-shadow);
+        }
+
+        .panel-header {
+            margin-bottom: 25px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .panel-title {
+            font-size: 1.25rem;
+            font-weight: 700;
+        }
+
+        /* Generator Specifics */
+        .input-tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 30px;
+            background: rgba(255, 255, 255, 0.05);
+            padding: 6px;
+            border-radius: 14px;
+        }
+
+        .tab-btn {
+            flex: 1;
+            padding: 12px;
+            border: none;
+            background: transparent;
+            color: var(--text-muted);
+            border-radius: 10px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .tab-btn.active {
+            background: var(--primary);
+            color: white;
+            box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+        }
+
+        .form-group {
+            margin-bottom: 25px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 10px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: var(--text-muted);
+        }
+
+        .form-input {
+            width: 100%;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--glass-border);
+            padding: 15px 20px;
+            border-radius: 14px;
+            color: white;
+            font-size: 1rem;
+            transition: all 0.3s;
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: var(--primary);
+            background: rgba(255, 255, 255, 0.08);
+            box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.1);
+        }
+
+        .options-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        .btn-generate {
+            width: 100%;
+            padding: 18px;
+            background: linear-gradient(135deg, var(--primary), var(--accent));
+            color: white;
+            border: none;
+            border-radius: 16px;
+            font-size: 1.1rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-top: 20px;
+            box-shadow: 0 10px 25px rgba(99, 102, 241, 0.3);
+        }
+
+        .btn-generate:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 15px 35px rgba(99, 102, 241, 0.4);
+        }
+
+        /* Preview Panel */
+        .preview-area {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 400px;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 20px;
+            border: 2px dashed var(--glass-border);
+            margin-bottom: 30px;
+        }
+
+        #qrcode canvas,
+        #qrcode img {
+            border-radius: 16px;
+            padding: 15px;
+            background: white;
+        }
+
+        .action-btns {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            width: 100%;
+        }
+
+        .btn-action {
+            padding: 14px;
+            border-radius: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        .btn-download {
+            background: #10b981;
+            color: white;
+            border: none;
+        }
+
+        .btn-share {
+            background: var(--glass-bg);
+            color: white;
+            border: 1px solid var(--glass-border);
+        }
+
+        /* History Gallery - Featured Feature */
+        .history-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+
+        .history-item {
+            background: var(--glass-bg);
+            border-radius: 16px;
+            padding: 15px;
+            border: 1px solid var(--glass-border);
+            transition: all 0.3s;
+            cursor: pointer;
+            text-align: center;
+        }
+
+        .history-item:hover {
+            transform: scale(1.05);
+            background: rgba(255, 255, 255, 0.08);
+            border-color: var(--primary);
+        }
+
+        .history-qr-thumb {
+            width: 100%;
+            aspect-ratio: 1;
+            background: white;
+            border-radius: 10px;
+            margin-bottom: 10px;
+            padding: 8px;
+        }
+
+        .history-qr-thumb img {
+            width: 100%;
+        }
+
+        .history-label {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        /* Modals */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.85);
+            backdrop-filter: blur(10px);
+            z-index: 1000;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .modal-content {
+            background: #1e293b;
+            border-radius: 30px;
+            width: 100%;
+            max-width: 500px;
+            padding: 40px;
+            border: 1px solid var(--glass-border);
+            position: relative;
+        }
+
+        /* Animations */
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .animate-fade {
+            animation: fadeIn 0.5s ease-out forwards;
+        }
+
+        /* Mobile Admin Access - Invisible trigger area */
+        .admin-secret-trigger {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            width: 60px;
+            height: 60px;
+            z-index: 9999;
+            opacity: 0;
+            cursor: pointer;
+        }
+
+        @media (max-width: 768px) {
+            .admin-secret-trigger {
+                width: 80px;
+                height: 80px;
+                bottom: 30px;
+                right: 30px;
+            }
+        }
+
+        /* Mobile Optimization */
+        @media (max-width: 1024px) {
+            .grid-layout {
+                grid-template-columns: 1fr;
+            }
+
+            .sidebar {
+                transform: translateX(-100%);
+                position: absolute;
+            }
+
+            .sidebar.active {
+                transform: translateX(0);
+            }
+        }
+
+        /* ================= MOBILE & TABLET RESPONSIVE ================= */
+
+        /* Tablets */
+        @media (max-width: 1024px) {
+
+            body {
+                overflow-x: hidden;
+            }
+
+            .main-content {
+                padding: 25px;
+            }
+
+            .grid-layout {
+                grid-template-columns: 1fr;
+            }
+
+            .preview-area {
+                min-height: 300px;
+            }
+
+        }
+
+        /* Large Phones */
+        @media (max-width: 768px) {
+
+            .main-content {
+                padding: 20px;
+            }
+
+            .top-bar {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 15px;
+            }
+
+            .user-profile {
+                align-self: flex-end;
+            }
+
+            .panel {
+                padding: 20px;
+            }
+
+            .options-row {
+                grid-template-columns: 1fr;
+            }
+
+            .action-btns {
+                grid-template-columns: 1fr;
+            }
+
+            .history-grid {
+                grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+            }
+
+        }
+
+        /* Standard Phones (Android / iPhone) */
+        @media (max-width: 600px) {
+
+            .logo-text {
+                font-size: 1.2rem;
+            }
+
+            .sidebar {
+                width: 240px;
+                padding: 25px 15px;
+            }
+
+            .nav-link {
+                padding: 12px 14px;
+                font-size: 0.9rem;
+            }
+
+            .panel-title {
+                font-size: 1.1rem;
+            }
+
+            .form-input {
+                padding: 12px 15px;
+                font-size: 0.9rem;
+            }
+
+            .btn-generate {
+                padding: 14px;
+                font-size: 1rem;
+            }
+
+            .preview-area {
+                min-height: 250px;
+            }
+
+        }
+
+        /* Small Phones (iPhone SE, small Android) */
+        @media (max-width: 480px) {
+
+            .main-content {
+                padding: 15px;
+            }
+
+            .panel {
+                padding: 15px;
+                border-radius: 18px;
+            }
+
+            .input-tabs {
+                flex-wrap: wrap;
+            }
+
+            .tab-btn {
+                font-size: 0.8rem;
+                padding: 10px;
+            }
+
+            .history-grid {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 12px;
+            }
+
+            .btn-action {
+                font-size: 0.85rem;
+                padding: 12px;
+            }
+
+            .user-profile span {
+                display: none;
+            }
+
+            .avatar {
+                width: 32px;
+                height: 32px;
+            }
+
+        }
+    </style>
+    <!-- Legacy Styles for GCash and Ads -->
+    <style>
+        .gcash-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.9);
+            z-index: 5000;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .gcash-modal.active {
+            display: flex;
+        }
+
+        .phone-frame {
+            width: 360px;
+            background: #0159ff;
+            border-radius: 40px;
+            padding: 12px;
+            box-shadow: 0 30px 60px rgba(0, 0, 0, 0.5);
+        }
+
+        .phone-screen {
+            background: #f4f6f9;
+            border-radius: 30px;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            height: 600px;
+            color: #333;
+        }
+
+        .app-header {
+            background: #0159ff;
+            color: white;
+            padding: 15px;
+            text-align: center;
+        }
+
+        .app-body {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+        }
+
+        .ad-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.9);
+            z-index: 2000;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .ad-overlay.active {
+            display: flex;
+        }
+
+        .ad-modal {
+            background: white;
+            border-radius: 24px;
+            max-width: 450px;
+            width: 100%;
+            color: #333;
+            overflow: hidden;
+        }
+
+        .ad-header {
+            background: linear-gradient(135deg, #6366f1, #ec4899);
+            color: white;
+            padding: 20px;
+            text-align: center;
+        }
+
+        .ad-body {
+            padding: 25px;
+        }
+
+        .skip-btn {
+            width: 100%;
+            padding: 15px;
+            border-radius: 12px;
+            border: none;
+            font-weight: 700;
+            cursor: not-allowed;
+            opacity: 0.5;
+            margin-top: 15px;
+        }
+
+        .skip-btn.active {
+            background: #10b981;
+            color: white;
+            cursor: pointer;
+            opacity: 1;
+        }
+
+        /* Auth Modal Styling */
+        .auth-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: var(--bg-gradient);
+            z-index: 10000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .auth-box {
+            background: rgba(255, 255, 255, 0.03);
+            backdrop-filter: blur(30px);
+            border: 1px solid var(--glass-border);
+            border-radius: 32px;
+            padding: 50px;
+            width: 100%;
+            max-width: 450px;
+            text-align: center;
+        }
+
+        /* ================= BURGER MENU & MOBILE NAV ================= */
+        .burger-menu {
+            display: none;
+            flex-direction: column;
+            justify-content: space-around;
+            width: 30px;
+            height: 25px;
+            background: transparent;
+            border: none;
+            cursor: pointer;
+            padding: 0;
+            z-index: 1100;
+            position: relative;
+        }
+
+        .burger-menu span {
+            width: 30px;
+            height: 3px;
+            background: white;
+            border-radius: 10px;
+            transition: all 0.3s linear;
+            display: block;
+            margin: 3px 0;
+        }
+
+        .mobile-nav {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(15, 23, 42, 0.98);
+            backdrop-filter: blur(20px);
+            z-index: 1000;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            gap: 15px;
+            padding: 20px;
+        }
+
+        .mobile-nav.active {
+            display: flex;
+        }
+
+        .mobile-nav .nav-link {
+            font-size: 1.3rem;
+            padding: 15px 30px;
+            width: 80%;
+            max-width: 300px;
+            justify-content: center;
+        }
+
+        .mobile-nav .admin-secret-btn {
+            margin-top: 20px;
+            padding: 15px 30px;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            border: none;
+            border-radius: 12px;
+            color: white;
+            font-weight: 700;
+            font-size: 1rem;
+            cursor: pointer;
+            width: 80%;
+            max-width: 300px;
+        }
+
+        .close-mobile-nav {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            font-size: 2rem;
+            color: white;
+            background: none;
+            border: none;
+            cursor: pointer;
+        }
+
+        /* Show burger on tablet/mobile */
+        @media (max-width: 1024px) {
+            .burger-menu {
+                display: flex;
+            }
+
+            .sidebar {
+                display: none;
+                /* Hide sidebar on mobile */
+            }
+
+            .main-content {
+                padding: 20px;
+                width: 100%;
+            }
+
+            .user-profile span {
+                display: none;
+                /* Hide username text on small screens */
+            }
+        }
+
+        @media (max-width: 768px) {
+            .top-bar {
+                padding: 0 10px;
+            }
+
+            .burger-menu {
+                margin-right: 10px;
+            }
+        }
+
+        s
+    </style>
+</head>
+
+<body>
+    <div class="bg-blob blob-1"></div>
+    <div class="bg-blob blob-2"></div>
+
+    <!-- Sidebar Navigation -->
+    <aside class="sidebar">
+        <div class="logo-container" onclick="showAdminPanel()">
+            <div class="logo-icon">Q</div>
+            <div class="logo-text">QR PRO</div>
+        </div>
+
+        <nav class="nav-links">
+            <div class="nav-item">
+                <a href="#" class="nav-link active" onclick="showView('generator')">
+                    <span>⚡</span> Generator
+                </a>
+            </div>
+            <div class="nav-item">
+                <a href="#" class="nav-link" onclick="showView('history')">
+                    <span>🕒</span> History
+                </a>
+            </div>
+            <div class="nav-item">
+                <a href="#" class="nav-link" onclick="showPremiumModal()">
+                    <span>💎</span> Premium
+                </a>
+            </div>
+            <div class="nav-item"
+                style="margin-top: 20px; border-top: 1px solid var(--glass-border); padding-top: 20px;">
+                <a href="#" class="nav-link" onclick="logout()">
+                    <span>🚪</span> Logout
+                </a>
+            </div>
+        </nav>
+
+        <div class="premium-card-sidebar" id="sidebarPremiumCard">
+            <h4>Go Unlimited</h4>
+            <p>Generate high-res QR codes without ads.</p>
+            <button class="btn-upgrade-sidebar" onclick="showPremiumModal()">UPGRADE NOW</button>
+        </div>
+    </aside>
+
+    <!-- Main Content Area -->
+    <main class="main-content">
+        <div class="top-bar">
+            <!-- Burger Menu Button -->
+            <button class="burger-menu" onclick="toggleMobileNav()" aria-label="Menu">
+                <span></span>
+                <span></span>
+                <span></span>
+            </button>
+
+            <div>
+                <h1 id="pageTitle" style="font-size: 1.8rem; font-weight: 800;">Create QR Code</h1>
+                <p id="pageSubtitle" style="color: var(--text-muted);">Select type and customize your code</p>
+            </div>
+
+            <div class="user-profile">
+                <div class="avatar" id="userAvatar">U</div>
+                <span id="userName">User</span>
+            </div>
+        </div>
+
+        <!-- Mobile Navigation Overlay -->
+        <div class="mobile-nav" id="mobileNav">
+            <button class="close-mobile-nav" onclick="toggleMobileNav()">✕</button>
+
+            <a href="#" class="nav-link active" onclick="showViewMobile('generator')">
+                <span>⚡</span> Generator
+            </a>
+            <a href="#" class="nav-link" onclick="showViewMobile('history')">
+                <span>🕒</span> History
+            </a>
+            <a href="#" class="nav-link" onclick="showViewMobile('premium')">
+                <span>💎</span> Premium
+            </a>
+
+            <div style="border-top: 1px solid var(--glass-border); width: 80%; max-width: 300px; margin: 10px 0;"></div>
+
+            <a href="#" class="nav-link" onclick="logout(); toggleMobileNav();">
+                <span>🚪</span> Logout
+            </a>
+
+            <!-- Admin Access Button -->
+            <button class="admin-secret-btn" onclick="showAdminPanel(); toggleMobileNav();">
+                🔐 Admin Panel
+            </button>
+        </div>
+
+        <!-- Generator View -->
+        <div id="view-generator" class="view-section active">
+            <div class="grid-layout">
+                <!-- Input Panel -->
+                <div class="panel animate-fade">
+                    <div class="input-tabs">
+                        <button class="tab-btn active" onclick="switchTab('link')">🔗 Link</button>
+                        <button class="tab-btn" onclick="switchTab('text')">📝 Text</button>
+                        <button class="tab-btn" onclick="switchTab('file')">📁 File</button>
+                        <button class="tab-btn premium-lock" onclick="checkPremiumFeature('wifi')">📶 WiFi</button>
+                    </div>
+
+                    <div class="input-container">
+                        <div id="link-input" class="input-group active">
+                            <div class="form-group">
+                                <label>Target URL</label>
+                                <input type="url" id="linkUrl" class="form-input" placeholder="https://example.com"
+                                    value="https://">
+                            </div>
+                        </div>
+
+                        <div id="text-input" class="input-group" style="display: none;">
+                            <div class="form-group">
+                                <label>Text Content</label>
+                                <textarea id="textContent" class="form-input" style="min-height: 120px;"
+                                    placeholder="Enter your text here..."></textarea>
+                            </div>
+                        </div>
+
+                        <div id="file-input" class="input-group" style="display: none;">
+                            <div class="form-group">
+                                <label>Upload File</label>
+                                <div class="form-input"
+                                    style="text-align: center; cursor: pointer; border: 2px dashed var(--glass-border); padding: 40px;"
+                                    onclick="document.getElementById('fileInput').click()">
+                                    <span style="font-size: 2rem;">📤</span>
+                                    <p style="margin-top: 10px;">Drag files here or click to upload</p>
+                                </div>
+                                <input type="file" id="fileInput" hidden multiple onchange="handleFiles(this.files)">
+                                <div id="fileList" style="margin-top: 15px; display: flex; flex-wrap: wrap; gap: 8px;">
+                                </div>
+                            </div>
+                        </div>
+
+                        <div id="wifi-input" class="input-group" style="display: none;">
+                            <div class="form-group">
+                                <label>SSID (Network Name)</label>
+                                <input type="text" id="wifiSsid" class="form-input" placeholder="My WiFi">
+                            </div>
+                            <div class="form-group">
+                                <label>Password</label>
+                                <input type="text" id="wifiPassword" class="form-input" placeholder="••••••••">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="panel-header"
+                        style="border-top: 1px solid var(--glass-border); padding-top: 25px; margin-top: 25px;">
+                        <span class="panel-title">Customization</span>
+                    </div>
+
+                    <div class="options-row">
+                        <div class="form-group">
+                            <label>Foreground Color</label>
+                            <input type="color" id="qrColor" class="form-input" style="padding: 5px; height: 50px;"
+                                value="#000000">
+                        </div>
+                        <div class="form-group">
+                            <label>Background Color</label>
+                            <input type="color" id="qrBgColor" class="form-input" style="padding: 5px; height: 50px;"
+                                value="#ffffff">
+                        </div>
+                    </div>
+
+                    <div class="options-row">
+                        <div class="form-group">
+                            <label>Design Style</label>
+                            <select id="qrStyle" class="form-input">
+                                <option value="classic">Classic Squares</option>
+                                <option value="dots" class="premium-feature">Rounded Dots (PRO)</option>
+                                <option value="liquid" class="premium-feature">Liquid Connect (PRO)</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Size</label>
+                            <select id="qrSize" class="form-input">
+                                <option value="256">256x256 (Standard)</option>
+                                <option value="512">512x512 (HD)</option>
+                                <option value="1024">1024x1024 (4K)</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <button class="btn-generate" id="generateBtn" onclick="initiateGeneration()">
+                        Generate QR Code
+                    </button>
+
+                    <div id="freeUsageIndicator"
+                        style="text-align: center; margin-top: 15px; font-size: 0.85rem; color: var(--text-muted);">
+                        Free attempts: <span id="freeCount" style="color: var(--secondary); font-weight: 700;">3</span>
+                        left
+                    </div>
+                </div>
+
+                <!-- Preview Panel -->
+                <div class="panel animate-fade" style="animation-delay: 0.1s;">
+                    <div class="panel-header">
+                        <span class="panel-title">Live Preview</span>
+                        <div id="usageBadge"
+                            style="background: rgba(236, 72, 153, 0.2); color: var(--secondary); padding: 4px 12px; border-radius: 100px; font-size: 0.75rem; font-weight: 700;">
+                            FREE EDITION</div>
+                    </div>
+
+                    <div class="preview-area" id="resultSection">
+                        <div id="qrcode">
+                            <div style="text-align: center; color: var(--text-muted);">
+                                <span style="font-size: 3rem; display: block; margin-bottom: 10px;">🎨</span>
+                                Configure options to generate
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="action-btns" id="actionBtns" style="display: none;">
+                        <button class="btn-action btn-download" onclick="downloadQR()">
+                            <span>💾</span> Download
+                        </button>
+                        <button class="btn-action btn-share" onclick="copyToClipboard()">
+                            <span>🔗</span> Copy Image
+                        </button>
+                    </div>
+
+                    <div id="adBanner"
+                        style="margin-top: 30px; background: rgba(255, 255, 255, 0.05); border-radius: 16px; padding: 20px; text-align: center; border: 1px solid var(--glass-border);">
+                        <small
+                            style="text-transform: uppercase; letter-spacing: 2px; color: var(--text-muted); font-size: 0.65rem;">Sponsored
+                            Message</small>
+                        <p style="margin-top: 8px; font-weight: 600;">🚀 UPGRADE TO REMOVE ADS</p>
+                        <p style="font-size: 0.8rem; color: var(--text-muted); margin-top: 4px;">One-time payment of
+                            ₱250 for lifetime access.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- History View -->
+        <div id="view-history" class="view-section" style="display: none;">
+            <div class="panel animate-fade">
+                <div class="panel-header">
+                    <span class="panel-title">Generation History</span>
+                    <button class="btn-action btn-share" style="padding: 8px 16px;" onclick="clearHistory()">Clear
+                        All</button>
+                </div>
+                <p style="color: var(--text-muted); margin-top: -15px;">Your locally saved QR codes are stored here for
+                    30 days.</p>
+
+                <div class="history-grid" id="historyGrid">
+                    <!-- History items injected here -->
+                    <div style="grid-column: 1/-1; text-align: center; padding: 60px; color: var(--text-muted);">
+                        <span style="font-size: 3rem;">📂</span>
+                        <p>No history yet. Start generating!</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Auth Container -->
+    <div class="auth-container" id="authModal" style="display: none;">
+        <div class="auth-box">
+            <div style="font-size: 3rem; margin-bottom: 20px;" id="authIcon">👤</div>
+            <h2 id="authTitle" style="font-size: 2rem; margin-bottom: 10px;">Welcome Back</h2>
+            <p id="authSubtitle" style="color: var(--text-muted); margin-bottom: 35px;">Generate & store your QR codes
+                securely</p>
+
+            <div style="text-align: left; margin-bottom: 25px;">
+                <label
+                    style="font-size: 0.8rem; color: var(--text-muted); font-weight: 700; text-transform: uppercase; margin-left: 5px;">Username</label>
+                <input type="text" id="username" class="form-input" placeholder="e.g. johndoe"
+                    style="margin-top: 5px; margin-bottom: 20px;">
+
+                <label
+                    style="font-size: 0.8rem; color: var(--text-muted); font-weight: 700; text-transform: uppercase; margin-left: 5px;">Password</label>
+                <input type="password" id="password" class="form-input" placeholder="••••••••" style="margin-top: 5px;">
+            </div>
+
+            <button class="btn-generate" onclick="handleAuth()">Continue Access</button>
+            <p style="margin-top: 25px; color: var(--text-muted);">
+                <span id="authToggleText">New to QR Pro?</span>
+                <a href="#" onclick="toggleAuthMode()" id="authToggleAction"
+                    style="color: var(--primary); font-weight: 700; text-decoration: none; margin-left: 5px;">Create
+                    Account</a>
+            </p>
+        </div>
+    </div>
+
+    <!-- Modals (Legacy support with new look) -->
+    <div class="ad-overlay" id="adOverlay">
+        <div class="ad-modal animate-fade">
+            <div class="ad-header">
+                <h3>Preparing your QR Code</h3>
+                <p>Ad closing in <span id="timer" style="font-weight: 800;">5</span>s</p>
+            </div>
+            <div class="ad-body">
+                <div
+                    style="background: #f1f5f9; height: 200px; border-radius: 12px; display: flex; align-items: center; justify-content: center; margin-bottom: 20px;">
+                    <div style="text-align: center;">
+                        <span style="font-size: 2rem;">🚀</span>
+                        <p style="font-weight: 800; color: #1e293b;">YOUR AD HUB</p>
+                        <p style="font-size: 0.8rem; color: #64748b;">Reach 10,000+ creators daily</p>
+                    </div>
+                </div>
+                <button class="skip-btn" id="skipBtn" disabled>Please wait...</button>
+                <button class="btn-generate"
+                    style="background: var(--bg-gradient); margin-top: 15px; font-size: 0.9rem;"
+                    onclick="showPremiumModal()">SKIP ADS FOREVER (₱250)</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="gcash-modal" id="gcashModal">
+        <div class="phone-frame animate-fade" style="max-width: 90vw;">
+            <div class="phone-screen">
+                <div class="app-header">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <span onclick="closeGcashModal()" style="cursor: pointer;">✕</span>
+                        <span style="font-weight: 800;">GCash</span>
+                        <span style="opacity: 0;">✕</span>
+                    </div>
+                </div>
+                <div class="app-body">
+                    <div
+                        style="background: white; border-radius: 16px; padding: 20px; text-align: center; margin-bottom: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.05);">
+                        <p style="font-size: 0.8rem; color: #64748b;">PAY TO</p>
+                        <h3 style="color: #1e293b;">DARVIN JOHN B.</h3>
+                        <div style="font-size: 2rem; font-weight: 800; color: #0159ff; margin: 10px 0;">₱250.00</div>
+                        <div style="background: #f8fafc; padding: 15px; border-radius: 12px; margin: 15px 0;">
+                            <img src="gcash_qr.png" style="width: 150px; height: 150px;" alt="GCash QR">
+                        </div>
+                        <p style="font-size: 0.75rem; color: #64748b;">Scan QR to pay automatically</p>
+                    </div>
+                    <div class="form-group" style="margin-bottom: 15px;">
+                        <label style="color: #334155; font-size: 0.8rem;">GCash Reference Number</label>
+                        <input type="text" id="refNumber" class="form-input"
+                            style="background: #fff; color: #333; border-color: #cbd5e1;" placeholder="13 digits...">
+                    </div>
+                    <button class="btn-generate" onclick="submitGcashPayment(this)"
+                        style="margin-top: 0; padding: 14px;">Confirm Payment</button>
+                    <p style="font-size: 0.7rem; color: #64748b; text-align: center; margin-top: 15px;">Payment is
+                        processed manually. Activation takes 5-10 minutes.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // State Management
+        let currentState = {
+            view: 'generator',
+            tab: 'link',
+            user: sessionStorage.getItem('qrUser') || null,
+            isPremium: localStorage.getItem('qrPremium') === 'true',
+            history: JSON.parse(localStorage.getItem('qr_history')) || [],
+            usage: JSON.parse(localStorage.getItem('qr_usage')) || { count: 0, lastReset: Date.now() }
+        };
+
+        // Initialization
+        window.onload = () => {
+            initAuth();
+            renderHistory();
+            updateUIState();
+        };
+
+        function initAuth() {
+            if (!currentState.user) {
+                document.getElementById('authModal').style.display = 'flex';
+            } else {
+                const username = typeof currentState.user === 'string' ? currentState.user : currentState.user.username;
+                document.getElementById('userName').textContent = username;
+                document.getElementById('userAvatar').textContent = username[0].toUpperCase();
+            }
+        }
+
+        function updateUIState() {
+            const username = typeof currentState.user === 'string' ? currentState.user : (currentState.user ? currentState.user.username : null);
+
+            if (username) {
+                const requests = JSON.parse(localStorage.getItem('pendingUpgrades') || '[]');
+                const approvedRequest = requests.find(r => r.username === username && r.status === 'approved');
+
+                if (approvedRequest) {
+                    currentState.isPremium = true;
+                    localStorage.setItem('qrPremium', 'true');
+                } else {
+                    currentState.isPremium = false;
+                    localStorage.setItem('qrPremium', 'false');
+                }
+            }
+
+            if (currentState.isPremium) {
+                document.getElementById('sidebarPremiumCard').style.display = 'none';
+                document.getElementById('usageBadge').textContent = 'PREMIUM ACTIVE';
+                document.getElementById('usageBadge').style.background = 'rgba(16, 185, 129, 0.2)';
+                document.getElementById('usageBadge').style.color = '#10b981';
+                document.getElementById('freeUsageIndicator').style.display = 'none';
+                document.getElementById('adBanner').style.display = 'none';
+                document.querySelectorAll('.premium-lock').forEach(b => b.classList.remove('premium-lock'));
+            } else {
+                document.getElementById('sidebarPremiumCard').style.display = 'block';
+                document.getElementById('usageBadge').textContent = 'FREE EDITION';
+                document.getElementById('usageBadge').style.background = 'rgba(236, 72, 153, 0.2)';
+                document.getElementById('usageBadge').style.color = 'var(--secondary)';
+                document.getElementById('freeUsageIndicator').style.display = 'block';
+                document.getElementById('adBanner').style.display = 'block';
+            }
+            updateUsageDisplay();
+        }
+
+        // View Switching
+        function showView(viewId) {
+            currentState.view = viewId;
+            document.querySelectorAll('.view-section').forEach(v => v.style.display = 'none');
+            document.getElementById('view-' + viewId).style.display = 'block';
+
+            document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
+            event.currentTarget.classList.add('active');
+
+            if (viewId === 'generator') {
+                document.getElementById('pageTitle').textContent = 'Create QR Code';
+                document.getElementById('pageSubtitle').textContent = 'Select type and customize your code';
+            } else {
+                document.getElementById('pageTitle').textContent = 'Library & History';
+                document.getElementById('pageSubtitle').textContent = 'Your previously generated QR codes';
+                renderHistory();
+            }
+        }
+
+        function switchTab(tabId) {
+            if ((tabId === 'file' || tabId === 'wifi') && !currentState.isPremium) {
+                const username = typeof currentState.user === 'string' ? currentState.user : (currentState.user ? currentState.user.username : null);
+                const requests = JSON.parse(localStorage.getItem('pendingUpgrades') || '[]');
+                const pending = requests.find(r => r.username === username && r.status === 'pending');
+
+                if (pending) {
+                    alert("Your premium request is still pending admin approval. Please wait.");
+                } else {
+                    showPremiumModal();
+                }
+                return;
+            }
+
+            currentState.tab = tabId;
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            // Support both direct ID match and text content search for button selection
+            const btn = Array.from(document.querySelectorAll('.tab-btn')).find(b =>
+                b.getAttribute('onclick').includes(`'${tabId}'`)
+            );
+            if (btn) btn.classList.add('active');
+
+            document.querySelectorAll('.input-group').forEach(g => g.style.display = 'none');
+            document.getElementById(tabId + '-input').style.display = 'block';
+        }
+
+        // Feature lock function for WiFi/Batch
+        function checkPremiumFeature(feature) {
+            switchTab(feature);
+        }
+
+        // QR Logic
+        let currentQRCode = null;
+
+        function initiateGeneration() {
+            if (!currentState.user) return initAuth();
+
+            if (currentState.isPremium) {
+                generateQR();
+            } else {
+                if (getRemainingUsage() <= 0) {
+                    return showPremiumModal();
+                }
+                showAd();
+            }
+        }
+
+        function generateQR() {
+            const container = document.getElementById('qrcode');
+            container.innerHTML = '';
+
+            let data = "";
+            let label = "";
+
+            switch (currentState.tab) {
+                case 'link':
+                    data = document.getElementById('linkUrl').value;
+                    label = "Link: " + data;
+                    break;
+                case 'text':
+                    data = document.getElementById('textContent').value;
+                    label = "Text: " + data.substring(0, 20);
+                    break;
+                case 'wifi':
+                    const ssid = document.getElementById('wifiSsid').value;
+                    const pass = document.getElementById('wifiPassword').value;
+                    data = `WIFI:S:${ssid};T:WPA;P:${pass};;`;
+                    label = "WiFi: " + ssid;
+                    break;
+                case 'file':
+                    data = "https://qr-pro.file-share/" + Math.random().toString(36).substr(2, 9);
+                    label = "File Upload";
+                    break;
+            }
+
+            if (!data || data === "https://") {
+                alert("Please provide valid input content");
+                return;
+            }
+
+            const size = parseInt(document.getElementById('qrSize').value);
+            const color = document.getElementById('qrColor').value;
+            const bg = document.getElementById('qrBgColor').value;
+
+            currentQRCode = new QRCode(container, {
+                text: data,
+                width: size,
+                height: size,
+                colorDark: color,
+                colorLight: bg,
+                correctLevel: QRCode.CorrectLevel.H
+            });
+
+            document.getElementById('actionBtns').style.display = 'grid';
+
+            // Save to history
+            // Wait for canvas to render
+            setTimeout(() => {
+                const canvas = container.querySelector('canvas');
+                if (canvas) {
+                    addToHistory(canvas.toDataURL(), label);
+                }
+            }, 500);
+
+            if (!currentState.isPremium) incrementUsage();
+        }
+
+        function downloadQR() {
+            const canvas = document.querySelector('#qrcode canvas');
+            if (canvas) {
+                const link = document.createElement('a');
+                link.download = 'QR-Pro-Code.png';
+                link.href = canvas.toDataURL();
+                link.click();
+            }
+        }
+
+        // History Feature
+        function addToHistory(dataUrl, label) {
+            const item = {
+                id: Date.now(),
+                img: dataUrl,
+                label: label,
+                date: new Date().toLocaleDateString()
+            };
+            currentState.history.unshift(item);
+            if (currentState.history.length > 20) currentState.history.pop();
+            localStorage.setItem('qr_history', JSON.stringify(currentState.history));
+        }
+
+        function renderHistory() {
+            const grid = document.getElementById('historyGrid');
+            if (!grid) return;
+
+            if (currentState.history.length === 0) {
+                grid.innerHTML = `<div style="grid-column: 1/-1; text-align: center; padding: 60px; color: var(--text-muted);"><span style="font-size: 3rem;">📂</span><p>No history yet.</p></div>`;
+                return;
+            }
+
+            grid.innerHTML = currentState.history.map(item => `
+                <div class="history-item animate-fade" onclick="previewHistoryItem(${item.id})">
+                    <div class="history-qr-thumb">
+                        <img src="${item.img}" alt="QR">
+                    </div>
+                    <div class="history-label">${item.label}</div>
+                    <div style="font-size: 0.6rem; color: var(--text-muted); margin-top: 4px;">${item.date}</div>
+                </div>
+            `).join('');
+        }
+
+        function clearHistory() {
+            if (confirm("Clear all generation history?")) {
+                currentState.history = [];
+                localStorage.setItem('qr_history', JSON.stringify([]));
+                renderHistory();
+            }
+        }
+
+        // Usage & Ads
+        function getRemainingUsage() {
+            const now = Date.now();
+            if (now - currentState.usage.lastReset > 24 * 60 * 60 * 1000) {
+                currentState.usage = { count: 0, lastReset: now };
+                localStorage.setItem('qr_usage', JSON.stringify(currentState.usage));
+            }
+            return Math.max(0, 3 - currentState.usage.count);
+        }
+
+        function incrementUsage() {
+            currentState.usage.count++;
+            localStorage.setItem('qr_usage', JSON.stringify(currentState.usage));
+            updateUsageDisplay();
+        }
+
+        function updateUsageDisplay() {
+            const count = getRemainingUsage();
+            document.getElementById('freeCount').textContent = count;
+            if (count <= 0) {
+                document.getElementById('generateBtn').textContent = 'LIMIT REACHED - UPGRADE';
+            }
+        }
+
+        let adInterval = null;
+        function showAd() {
+            const overlay = document.getElementById('adOverlay');
+            const skip = document.getElementById('skipBtn');
+            const timer = document.getElementById('timer');
+            let left = 5;
+
+            overlay.classList.add('active');
+            skip.disabled = true;
+            skip.textContent = "Please wait...";
+            skip.classList.remove('active');
+
+            timer.textContent = left;
+
+            adInterval = setInterval(() => {
+                left--;
+                timer.textContent = left;
+                if (left <= 0) {
+                    clearInterval(adInterval);
+                    skip.disabled = false;
+                    skip.classList.add('active');
+                    skip.textContent = "Continue to QR Code";
+                    skip.onclick = () => {
+                        overlay.classList.remove('active');
+                        generateQR();
+                    };
+                }
+            }, 1000);
+        }
+
+        // Auth Operations
+        let isRegister = false;
+        function toggleAuthMode() {
+            isRegister = !isRegister;
+            document.getElementById('authTitle').textContent = isRegister ? 'Join QR Pro' : 'Welcome Back';
+            document.getElementById('authIcon').textContent = isRegister ? '✨' : '👤';
+            document.getElementById('authToggleAction').textContent = isRegister ? 'Sign In Instead' : 'Create Account';
+            document.getElementById('authToggleText').textContent = isRegister ? 'Already have an account?' : 'New to QR Pro?';
+        }
+
+        function handleAuth() {
+            const u = document.getElementById('username').value.trim();
+            const p = document.getElementById('password').value;
+
+            if (u.length < 3) return alert("Username too short");
+
+            let users = JSON.parse(localStorage.getItem('qrAppUsers') || '[]');
+
+            if (isRegister) {
+                if (users.some(x => x.username === u)) return alert("Username exists");
+                users.push({ username: u, password: p, role: 'user', created: new Date().toLocaleString() });
+                localStorage.setItem('qrAppUsers', JSON.stringify(users));
+                alert("Account created! Please sign in.");
+                toggleAuthMode();
+            } else {
+                const user = users.find(x => x.username === u && x.password === p);
+                if (user || (u === 'admin' && p === 'admin')) {
+                    currentState.user = u;
+                    sessionStorage.setItem('qrUser', u);
+                    document.getElementById('authModal').style.display = 'none';
+                    initAuth();
+                } else {
+                    alert("Invalid credentials");
+                }
+            }
+        }
+
+        function logout() {
+            sessionStorage.removeItem('qrUser');
+            location.reload();
+        }
+
+        // Premium Logic
+        function showPremiumModal() {
+            document.getElementById('gcashModal').classList.add('active');
+        }
+
+        function closeGcashModal() {
+            document.getElementById('gcashModal').classList.remove('active');
+        }
+
+        function submitGcashPayment(btn) {
+            const ref = document.getElementById('refNumber').value;
+            if (ref.length < 10) return alert("Invalid reference number");
+
+            const username = typeof currentState.user === 'string' ? currentState.user : (currentState.user ? currentState.user.username : null);
+            if (!username) return alert("Please sign in first");
+
+            btn.disabled = true;
+            btn.textContent = "Submitting...";
+
+            // Store payment request for admin to see
+            let requests = JSON.parse(localStorage.getItem('pendingUpgrades') || '[]');
+
+            // Avoid duplicate active requests for the same user
+            if (requests.some(r => r.username === username && r.status === 'pending')) {
+                alert("You already have a pending request. Please wait for the admin to approve it.");
+                closeGcashModal();
+                return;
+            }
+
+            requests.push({
+                username: username,
+                ref: ref,
+                date: new Date().toLocaleString(),
+                status: 'pending',
+                receipt: null
+            });
+            localStorage.setItem('pendingUpgrades', JSON.stringify(requests));
+
+            setTimeout(() => {
+                alert("🚀 Payment Submitted! \nYour request is now pending admin approval. \nPlease check back later for full access.");
+                closeGcashModal();
+                btn.disabled = false;
+                btn.textContent = "Confirm Payment";
+                updateUIState();
+            }, 1500);
+        }
+
+        function showAdminPanel() {
+            const pass = prompt("Admin Access Required:");
+            if (pass === "admin123") window.location.href = "admin_dashboard.html";
+        }
+
+        function showAdminPanel() {
+            const pass = prompt("🔐 Admin Access Required\n\nEnter password:");
+            if (pass === "admin123") {
+                window.location.href = "admin_dashboard.html";
+            } else if (pass !== null && pass !== "") {
+                alert("❌ Incorrect password!");
+            }
+        }
+
+        // Mobile admin access - triple tap bottom-right corner
+        let adminTapCount = 0;
+        let adminTapTimer = null;
+
+        function initMobileAdminAccess() {
+            // Create invisible trigger area
+            const trigger = document.createElement('div');
+            trigger.className = 'admin-secret-trigger';
+            document.body.appendChild(trigger);
+
+            trigger.addEventListener('click', function () {
+                adminTapCount++;
+                if (adminTapCount === 1) {
+                    adminTapTimer = setTimeout(() => { adminTapCount = 0; }, 2000);
+                }
+                if (adminTapCount >= 3) {
+                    clearTimeout(adminTapTimer);
+                    adminTapCount = 0;
+                    showAdminPanel();
+                }
+            });
+
+            // Long press on logo (2 seconds) for mobile
+            const logo = document.querySelector('.logo-container');
+            if (logo) {
+                let pressTimer;
+                logo.addEventListener('touchstart', function (e) {
+                    pressTimer = setTimeout(() => {
+                        showAdminPanel();
+                    }, 2000);
+                });
+                logo.addEventListener('touchend', function () {
+                    clearTimeout(pressTimer);
+                });
+                logo.addEventListener('touchmove', function () {
+                    clearTimeout(pressTimer);
+                });
+            }
+        }
+
+        // Initialize
+        window.addEventListener('load', initMobileAdminAccess);
+
+        // Mobile Navigation Toggle
+        function toggleMobileNav() {
+            const nav = document.getElementById('mobileNav');
+            if (nav) {
+                nav.classList.toggle('active');
+            }
+        }
+
+        // Mobile View Switching
+        function showViewMobile(viewId) {
+            // Handle premium separately
+            if (viewId === 'premium') {
+                showPremiumModal();
+                toggleMobileNav();
+                return;
+            }
+
+            // Switch view
+            showView(viewId);
+            toggleMobileNav();
+
+            // Update active states in mobile nav
+            document.querySelectorAll('.mobile-nav .nav-link').forEach(link => {
+                link.classList.remove('active');
+            });
+
+            // Add active to clicked link
+            if (event && event.currentTarget) {
+                event.currentTarget.classList.add('active');
+            }
+        }
+
+        // Updated showAdminPanel function
+        function showAdminPanel() {
+            const pass = prompt("🔐 Admin Access Required\n\nEnter password:");
+            if (pass === "admin123") {
+                window.location.href = "admin_dashboard.html";
+            } else if (pass !== null && pass !== "") {
+                alert("❌ Incorrect password!");
+            }
+        }
+
+        // Close mobile nav when clicking outside (improved)
+        document.addEventListener('click', function (e) {
+            const mobileNav = document.getElementById('mobileNav');
+            const burger = document.querySelector('.burger-menu');
+
+            if (!mobileNav || !burger) return;
+
+            if (mobileNav.classList.contains('active') &&
+                !mobileNav.contains(e.target) &&
+                !burger.contains(e.target)) {
+                mobileNav.classList.remove('active');
+            }
+        });
+
+        // Ensure showView exists (if not already defined)
+        function showView(viewId) {
+            currentState.view = viewId;
+            document.querySelectorAll('.view-section').forEach(v => v.style.display = 'none');
+            const viewElement = document.getElementById('view-' + viewId);
+            if (viewElement) {
+                viewElement.style.display = 'block';
+            }
+
+            // Update page titles
+            if (viewId === 'generator') {
+                document.getElementById('pageTitle').textContent = 'Create QR Code';
+                document.getElementById('pageSubtitle').textContent = 'Select type and customize your code';
+            } else if (viewId === 'history') {
+                document.getElementById('pageTitle').textContent = 'Library & History';
+                document.getElementById('pageSubtitle').textContent = 'Your previously generated QR codes';
+                renderHistory();
+            }
+
+            // Update desktop nav active states
+            document.querySelectorAll('.sidebar .nav-link').forEach(l => l.classList.remove('active'));
+            const activeLink = document.querySelector(`.sidebar .nav-link[onclick*="'${viewId}'"]`);
+            if (activeLink) activeLink.classList.add('active');
+        }
+    </script>
+</body>
+
+</html>
